@@ -370,6 +370,35 @@ describe('S-7 · Input validation', () => {
     assert.equal(r.state, 'pace');
     assert.equal(r.remainingDisplay, '0.5');
   });
+
+  it('AC18: credits earned "1,001" (thousands comma) → "Credits earned cannot exceed 1,000." not "must be a number"', () => {
+    const r = calculate('60', '1,001', '2027-12-31', '2027-01-01');
+    assert.equal(r.state, 'error');
+    assert.equal(r.errors.earned, 'Credits earned cannot exceed 1,000.');
+  });
+
+  it('AC19: credits earned "1,000" (thousands comma) → valid, treated as 1000', () => {
+    const r = calculate('60', '1,000', '2027-12-31', '2027-01-01');
+    assert.equal(r.state, 'met'); // 1000 >= 60
+  });
+
+  it('AC20: credits required "1,000" (thousands comma) → "Credits required cannot exceed 500." not "must be a number"', () => {
+    const r = calculate('1,000', '0', '2027-12-31', '2027-01-01');
+    assert.equal(r.state, 'error');
+    assert.equal(r.errors.required, 'Credits required cannot exceed 500.');
+  });
+
+  it('AC21: impossible calc-from date (Feb 30) → "Calculate-from date is not a valid calendar date."', () => {
+    const r = calculate('60', '0', '2027-12-31', '2027-02-30');
+    assert.equal(r.state, 'error');
+    assert.equal(r.errors.fromDate, 'Calculate-from date is not a valid calendar date.');
+  });
+
+  it('AC22: calc-from year 1999 → "Calculate-from date must be between 2000 and 2100."', () => {
+    const r = calculate('60', '0', '2027-12-31', '1999-12-31');
+    assert.equal(r.state, 'error');
+    assert.equal(r.errors.fromDate, 'Calculate-from date must be between 2000 and 2100.');
+  });
 });
 
 // ---------------------------------------------------------------------------

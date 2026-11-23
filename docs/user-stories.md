@@ -29,7 +29,7 @@ Results update as fields change. There is no separate calculate button.
 **Panel display**  
 In the Urgency and Weekly pace states, the panel shows four items below any at-risk warning: a progress bar labelled "X of Y credits earned", the main result line, then "X credits remaining" (or "1 credit remaining"), then "X days left" (or "1 day left"). The progress bar fill is capped at 100%. These items are not shown in the Requirement met or Deadline passed states.
 
-The results card is colour-coded by severity: blue border for normal weekly pace; amber border and amber main text for urgency (< 7 days, not at risk); red border, red banner, and red main text for at-risk (pace > 40); green for requirement met; grey for deadline passed. Colour is never the only signal — the text and layout communicate each state independently.
+The results card has an amber border in the urgency state and a red border in the at-risk state. The at-risk state also shows a red warning banner and uses red text for the main result. In the urgency state the main result uses amber text. For the requirement-met state the result is shown in a green block; for the deadline-passed state it is shown in a grey block. No border change applies in the normal weekly pace state. Colour is never the only signal — the text and layout communicate each state independently.
 
 **Certification presets**  
 Selecting a preset fills credits required. Manually editing credits required switches the selector to Custom.
@@ -73,6 +73,9 @@ Preset: Custom. Credits required: empty. Credits earned: 0. Cycle end date: empt
 | Cycle end date is a calendar-impossible date (e.g. Feb 30) | "Cycle end date is not a valid calendar date." |
 | Cycle end date year < 2000 or > 2100 | "Cycle end date must be between 2000 and 2100." |
 | Calculate-from date cleared | "Calculate-from date is required." |
+| Calculate-from date is an impossible date (e.g. Feb 30) | "Calculate-from date is not a valid calendar date." |
+| Calculate-from date year < 2000 or > 2100 | "Calculate-from date must be between 2000 and 2100." |
+| Team view: calculate-from date not yet entered or invalid | "Enter a valid calculate-from date to see the team." (team results panel hint) |
 
 **UI text — result states**
 
@@ -213,6 +216,11 @@ As a Certified Professional, I want the app to flag invalid entries immediately 
 - Given cycle end date year = 1999, then the error **"Cycle end date must be between 2000 and 2100."** appears and no result is shown.
 - Given cycle end date year = 2101, then the error **"Cycle end date must be between 2000 and 2100."** appears and no result is shown.
 - Given the calculate-from date is cleared, then the error **"Calculate-from date is required."** appears and no result is shown.
+- Given the calculate-from date is an impossible date (e.g. Feb 30 2027), then the error **"Calculate-from date is not a valid calendar date."** appears and no result is shown.
+- Given the calculate-from date year = 1999, then the error **"Calculate-from date must be between 2000 and 2100."** appears and no result is shown.
+- Given credits earned = "1,001" (typed with a thousands comma), then the error **"Credits earned cannot exceed 1,000."** appears (not "Credits earned must be a number.") and no result is shown.
+- Given credits earned = "1,000" (typed with a thousands comma), then no error appears and the value is treated as 1,000 credits earned.
+- Given credits required = "1,000" (typed with a thousands comma), then the error **"Credits required cannot exceed 500."** appears (not "Credits required must be a number.") and no result is shown.
 - Given cycle end date is empty and credits required = 60 and calc-from = Jan 1, 2027, then no error appears for the end date field and no result is shown.
 - Given credits required = 501 (error showing), when credits required is corrected to 60 and end = Mar 11, 2027 and calc-from = Jan 1, 2027 and earned = 20, then the error clears and **"4 credits per week"** appears.
 - Given calc-from = Jan 1, 2027; end = Mar 11, 2027; required = 60; earned = 20 (result "4 credits per week" is showing), when cycle end date is cleared, then the result disappears immediately and no error is shown for the end date field.
@@ -291,6 +299,7 @@ As an L&D Manager, I want to enter details for several team members in one view 
 - Given a team member's data changes, then their position in the ranked list updates immediately.
 - Given 20 members are already entered, then the Add member button is disabled.
 - Team data is not saved between page loads; the view displays a note to that effect.
+- Given the shared calculate-from date is not yet entered or is invalid, then the team results panel shows **"Enter a valid calculate-from date to see the team."**
 
 ---
 

@@ -474,10 +474,24 @@ input.invalid:focus {
   text-align: center;
 }
 
+/* Team panel: flex column so order can be reversed on mobile */
+#panel-team {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Mobile adjustments for team view */
 @media (max-width: 480px) {
   .team-row-fields { grid-template-columns: 1fr; }
   .btn-remove { margin-top: 0; }
+}
+
+/* Below 768px: show results card above member list */
+@media (max-width: 768px) {
+  #panel-team {
+    flex-direction: column-reverse;
+  }
 }
 
 /* Footer */

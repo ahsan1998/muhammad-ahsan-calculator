@@ -418,7 +418,7 @@
     // pace
     return '<div class="team-result-line">'
       + esc(r.paceDisplay + ' credit' + (r.paceDisplay === '1' ? '' : 's') + '/week')
-      + ' &middot; ' + esc(r.remainingDisplay + ' remaining')
+      + ' &middot; ' + esc(r.remainingDisplay + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' remaining')
       + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left'))
       + '</div>';
   }
@@ -482,11 +482,14 @@
       + '<option value="pmp">PMI PMP</option>'
       + '<option value="capm">PMI CAPM</option>';
 
-    var nameId     = 'tm-name-'    + m.id;
-    var presetId   = 'tm-preset-'  + m.id;
-    var requiredId = 'tm-req-'     + m.id;
-    var earnedId   = 'tm-earn-'    + m.id;
-    var endDateId  = 'tm-end-'     + m.id;
+    var nameId     = 'tm-name-'     + m.id;
+    var presetId   = 'tm-preset-'   + m.id;
+    var requiredId = 'tm-req-'      + m.id;
+    var earnedId   = 'tm-earn-'     + m.id;
+    var endDateId  = 'tm-end-'      + m.id;
+    var reqErrId   = 'tm-req-err-'  + m.id;
+    var earnErrId  = 'tm-earn-err-' + m.id;
+    var endErrId   = 'tm-end-err-'  + m.id;
 
     div.innerHTML = ''
       + '<div class="team-row-fields">'
@@ -495,11 +498,14 @@
       + '  <div class="form-group"><label for="' + presetId + '">Preset</label>'
       + '    <select id="' + presetId + '">' + presetOptions + '</select></div>'
       + '  <div class="form-group"><label for="' + requiredId + '">Credits required</label>'
-      + '    <input type="text" id="' + requiredId + '" inputmode="decimal" placeholder="e.g. 60" autocomplete="off"></div>'
+      + '    <input type="text" id="' + requiredId + '" inputmode="decimal" placeholder="e.g. 60" aria-describedby="' + reqErrId + '" autocomplete="off">'
+      + '    <div class="field-error" id="' + reqErrId + '" role="alert"></div></div>'
       + '  <div class="form-group"><label for="' + earnedId + '">Credits earned</label>'
-      + '    <input type="text" id="' + earnedId + '" inputmode="decimal" placeholder="0" autocomplete="off"></div>'
+      + '    <input type="text" id="' + earnedId + '" inputmode="decimal" placeholder="0" aria-describedby="' + earnErrId + '" autocomplete="off">'
+      + '    <div class="field-error" id="' + earnErrId + '" role="alert"></div></div>'
       + '  <div class="form-group"><label for="' + endDateId + '">Cycle end date</label>'
-      + '    <input type="date" id="' + endDateId + '" min="2000-01-01" max="2100-12-31"></div>'
+      + '    <input type="date" id="' + endDateId + '" min="2000-01-01" max="2100-12-31" aria-describedby="' + endErrId + '">'
+      + '    <div class="field-error" id="' + endErrId + '" role="alert"></div></div>'
       + '</div>'
       + '<button class="btn-remove" type="button" aria-label="Remove member">&times;</button>';
 
@@ -508,6 +514,9 @@
     var reqEl     = div.querySelector('#' + requiredId);
     var earnEl    = div.querySelector('#' + earnedId);
     var endEl     = div.querySelector('#' + endDateId);
+    var reqErrEl  = div.querySelector('#' + reqErrId);
+    var earnErrEl = div.querySelector('#' + earnErrId);
+    var endErrEl  = div.querySelector('#' + endErrId);
     var removeBtn = div.querySelector('.btn-remove');
 
     // Restore saved state into DOM (fixes blank inputs after rebuildList)
@@ -519,11 +528,18 @@
 
     var suppressPreset = false;
 
+    function syncErrors() {
+      setFieldError(reqEl,  reqErrEl,  validateRequired(m.required).error);
+      setFieldError(earnEl, earnErrEl, validateEarned(m.earned).error);
+      setFieldError(endEl,  endErrEl,  validateEndDate(m.endDate).error);
+    }
+
     function sync() {
       m.name     = nameEl.value;
       m.required = reqEl.value;
       m.earned   = earnEl.value;
       m.endDate  = endEl.value;
+      syncErrors();
       renderResults();
     }
 
@@ -554,6 +570,8 @@
       rebuildList();
       renderResults();
     });
+
+    syncErrors(); // apply errors for any restored invalid state
 
     return div;
   }

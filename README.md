@@ -43,7 +43,7 @@ src/index.html
 node --test src/calc.test.js
 ```
 
-69 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.
+74 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.
 
 ---
 

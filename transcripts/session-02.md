@@ -8469,3 +8469,2434 @@ The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\README.md has be
 **Claude:**
 
 69/69. Both corrections made: "type 20 in credits earned" (not "leave at"), and the team example is now fully concrete — specific names, specific dates, verified expected output for both members and the summary line.
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:22:37 UTC</sub>
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+
+This session segment continued from a prior conversation where S-10 (team view) criteria had been proposed. The user approved S-10 with five specific clarifications, then directed the full implementation sequence:
+
+1. **S-10 docs-first**: Update `docs/user-stories.md` with full Given/When/Then ACs (badge table, five-person ordering, tie-breaks, Incomplete/Invalid split, summary rules, empty-name rule, limits), mark it Implemented; append team view sentence to R-2 in `docs/app-roles.md`.
+2. **S-10 implementation**: `rankTeam()` pure function in `calc.js`, unit tests covering every AC, tabs UI in `index.html`, team view with shared calc-from, add/remove (max 20), live-ranked results with badges and summary.
+3. **Bug: blank inputs on add/remove** — `rebuildList()` recreated DOM without restoring values; fix by restoring values from state in `buildRowEl()` and tracking `m.preset`.
+4. **Bug: summary at bottom** — move summary line above ranked rows.
+5. **Bug: curly quotes** — edit introduced curly quotes (`'` `'`) into JS, causing `SyntaxError`; fix with global replacement and add a script-syntax test.
+6. **Bug: wrong preset after remove** — SHRM/HRCI/PMP all had `option value="60"` so restore picked first match; fix by giving each option a unique key (`shrm/hrci/pmp/capm`) and introducing `PRESETS` map in `calc.js`.
+7. **README updates**: 69 tests, updated coverage description, added "Try it in 30 seconds" section.
+8. **Subtitle update**: Replace page subtitle with context-setting copy about SHRM/HRCI/PMP.
+9. **Fix "Try it" mistakes**: Default credits earned is 0 (not 20), team example needed concrete calc-from Jan 1 2027 with specific names/dates/expected output.
+
+---
+
+2. Key Technical Concepts:
+
+- Plain HTML + CSS + JS, no build step, `file://` compatible classic scripts
+- `calc.js` as a browser global with Node.js exports gated by `if (typeof module !== 'undefined')`
+- Integer hundredths arithmetic for credits throughout `calc.js`
+- `calculate()` state machine: empty / error / met / passed / urgency / pace
+- `rankTeam(rows, fromDate)` pure function: calls `calculate()` per row, maps to badge, sorts by priority then tie-break
+- Badge priority order: Lapsed(0) → At risk(1) → Urgent(2) → On track(3) → Done(4) → Invalid(5) → Incomplete(6)
+- Tie-breaks: Lapsed → most daysAgo first; At risk/Urgent/On track → highest pace first; all others → stable entry order
+- `PRESETS = { shrm: 60, hrci: 60, pmp: 60, capm: 15 }` — single source of truth used by both views
+- Tab UI with ARIA roles (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"`)
+- `new Function(src)` syntax check for inline `<script>` blocks
+- Node.js built-in test runner (`node --test src/calc.test.js`), no npm
+
+---
+
+3. Files and Code Sections:
+
+- **`src/calc.js`**
+  - Added at top: `var PRESETS = { shrm: 60, hrci: 60, pmp: 60, capm: 15 };`
+  - Added `rankTeam()` function before `module.exports`:
+    ```js
+    function rankTeam(rows, fromDate) {
+      var BADGE_ORDER = { 'Lapsed': 0, 'At risk': 1, 'Urgent': 2, 'On track': 3, 'Done': 4, 'Invalid': 5, 'Incomplete': 6 };
+      var annotated = rows.map(function (row, i) {
+        var r = calculate(
+          row.required !== undefined ? String(row.required) : '',
+          row.earned !== undefined ? String(row.earned) : '',
+          row.endDate !== undefined ? String(row.endDate) : '',
+          fromDate
+        );
+        var badge;
+        if (r.state === 'empty')    badge = 'Incomplete';
+        else if (r.state === 'error')   badge = 'Invalid';
+        else if (r.state === 'met')     badge = 'Done';
+        else if (r.state === 'passed')  badge = 'Lapsed';
+        else if (r.isAtRisk)            badge = 'At risk';
+        else if (r.state === 'urgency') badge = 'Urgent';
+        else                            badge = 'On track';
+        var nameStr = row.name ? String(row.name).trim() : '';
+        var displayName = nameStr || ('Person ' + (i + 1));
+        return { row: row, result: r, badge: badge, displayName: displayName, entryOrder: i };
+      });
+      annotated.sort(function (a, b) {
+        var ao = BADGE_ORDER[a.badge], bo = BADGE_ORDER[b.badge];
+        if (ao !== bo) return ao - bo;
+        if (a.badge === 'Lapsed') {
+          var d = (b.result.daysAgo || 0) - (a.result.daysAgo || 0);
+          if (d !== 0) return d;
+        } else if (a.badge === 'At risk' || a.badge === 'Urgent' || a.badge === 'On track') {
+          var d = (b.result.pace || 0) - (a.result.pace || 0);
+          if (d !== 0) return d;
+        }
+        return a.entryOrder - b.entryOrder;
+      });
+      return annotated;
+    }
+    ```
+  - `module.exports` updated to include `PRESETS` and `rankTeam`
+
+- **`src/calc.test.js`**
+  - Added `fs`, `path` imports at top
+  - Added `PRESETS` and `rankTeam` to destructured imports
+  - Replaced S-8 tests (which used a local inline object) with tests that import `PRESETS`:
+    ```js
+    it('AC1: PRESETS map — shrm=60, hrci=60, pmp=60, capm=15', () => {
+      assert.equal(PRESETS.shrm, 60);
+      assert.equal(PRESETS.hrci, 60);
+      assert.equal(PRESETS.pmp,  60);
+      assert.equal(PRESETS.capm, 15);
+    });
+    it('AC2: all keys are present, no extra keys', () => {
+      assert.deepEqual(Object.keys(PRESETS).sort(), ['capm', 'hrci', 'pmp', 'shrm']);
+    });
+    ```
+  - Added 14 S-10 tests covering all ACs (ordering, all five tie-breaks, Incomplete/Invalid, summary counts, empty-name fallback)
+  - Added script-syntax check suite at end:
+    ```js
+    describe('index.html — script syntax', () => {
+      const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+      const scriptRe = /<script(?:\s[^>]*)?>([^]*?)<\/script>/gi;
+      let match;
+      let blockIndex = 0;
+      while ((match = scriptRe.exec(html)) !== null) {
+        const attrs = match[0].slice(0, match[0].indexOf('>'));
+        if (attrs.includes('src=')) continue;
+        const src = match[1];
+        const idx = ++blockIndex;
+        it('inline script block ' + idx + ' parses without syntax errors', () => {
+          assert.doesNotThrow(() => new Function(src), 'syntax error in block ' + idx);
+        });
+      }
+    });
+    ```
+  - Final count: 69 tests, 19 suites, all pass
+
+- **`src/index.html`**
+  - Subtitle changed to: "Certifications like SHRM, HRCI and PMP need about 60 learning credits every 3 years. Enter yours to see how much to study each week, or switch to Team view to see who on your team is at risk."
+  - `<main>` now contains: tab bar nav, `#panel-single` (existing content), `#panel-team` (new)
+  - Both preset `<select>` elements use unique keys: `value="shrm"`, `value="hrci"`, `value="pmp"`, `value="capm"`
+  - Single-view preset handler updated: `elRequired.value = PRESETS[val];`
+  - Three `<script>` blocks: (1) single-view IIFE, (2) tab-switching IIFE, (3) team-view IIFE
+  - Team-view IIFE key structure:
+    - `memberRows`: array of `{ id, name, preset, required, earned, endDate }`
+    - `buildRowEl(m, index)`: creates DOM, **restores values from state** immediately after querySelector:
+      ```js
+      nameEl.value   = m.name     || '';
+      presetEl.value = m.preset   || '';
+      reqEl.value    = m.required || '';
+      earnEl.value   = m.earned   || '';
+      endEl.value    = m.endDate  || '';
+      ```
+    - `presetEl` change handler: `reqEl.value = PRESETS[this.value]; m.preset = presetEl.value;`
+    - `reqEl` input handler: `presetEl.value = ''; m.preset = '';`
+    - `renderResults()`: builds summary string **first**, then appends row HTML:
+      ```js
+      var html = '<div class="team-summary">' + esc(summary) + '</div>';
+      ranked.forEach(function (item) { html += ...; });
+      ```
+    - New member model: `{ id: nextId++, name: '', preset: '', required: '', earned: '', endDate: '' }`
+  - All curly quotes replaced with straight quotes via global Node.js replacement
+
+- **`src/style.css`**
+  - Tab bar styles: `.tab-bar`, `.tab`, `.tab[aria-selected="true"]`
+  - Team row styles: `.team-row`, `.team-row-fields`, `.btn-remove`, `.btn-add`, `.team-note`
+  - Team result styles: `.team-result-row`, `.team-badge`, `.team-result-body`, `.team-result-name`, `.team-result-line`, `.team-result-error`, `.team-summary`
+  - Badge color classes: `.badge-done` (green), `.badge-on-track` (blue), `.badge-urgent` (amber), `.badge-at-risk` (red), `.badge-lapsed` (grey), `.badge-invalid` (red), `.badge-incomplete` (grey)
+  - Mobile adjustment: `.team-row-fields { grid-template-columns: 1fr; }`
+
+- **`docs/user-stories.md`**
+  - S-10 status changed from "Not implemented" to "Implemented"
+  - Full AC set added: badge definitions table, five-person ordering example with specific dates/values, five tie-break ACs, Incomplete/Invalid split, summary rules, empty-name rule, live-update and limits ACs
+
+- **`docs/app-roles.md`**
+  - R-2 appended: "They can also switch to a team view to enter details for up to 20 team members at once and see them ranked by risk status, so that intervention priorities are visible at a glance."
+
+- **`README.md`**
+  - Description paragraph: added "L&D managers can switch to a team view to enter up to 20 members at once and see them ranked by risk."
+  - Added "Try it in 30 seconds" section after intro, before Prerequisites:
+    - Single view: SHRM-CP, type 20 in credits earned, Jan 1 2027 → Mar 11 2027 → "4 credits per week · 40 credits remaining · 70 days left"
+    - Team view: calc-from Jan 1 2027, Ali (PMI PMP, earned 10, end Dec 15 2026) → Lapsed "Cycle ended 17 days ago." first; Sara (SHRM, earned 45, end Dec 31 2027) → On track "0.29 credits/week" second; summary "1 of 2 at risk or lapsed"
+  - Test count updated from 52 to 69, coverage description updated
+
+---
+
+4. Errors and Fixes:
+
+- **Blank inputs when adding/removing team members**: `rebuildList()` wiped `elList.innerHTML` and rebuilt all rows from scratch, but `buildRowEl()` didn't set input values from model state. Fixed by adding value-restoration lines after querySelector calls, and tracking `m.preset` so the select is restored correctly.
+
+- **Summary line at bottom instead of top**: The `renderResults()` function built ranked rows HTML first and appended summary at end. Fixed by computing the summary string first and assigning it as the initial value of `html`, with rows forEach appending after.
+
+- **Curly quotes breaking script parse (`SyntaxError: Invalid or unexpected token`)**: Editing introduced typographic curly quotes (`'` `'`) into JavaScript string literals. The browser's JS parser cannot handle these. Fixed via a Node.js global replacement:
+  ```js
+  src = src.replace(/'/g, "'").replace(/'/g, "'").replace(/"/g, '"').replace(/"/g, '"');
+  ```
+  Also added the `new Function()` syntax-check test suite to catch this automatically in future. The specific broken string was: `'Add team members to see who's at risk.'` where `'` was a right single curly quote terminating the string prematurely.
+
+- **Wrong preset displayed after remove**: SHRM-CP, HRCI, and PMI PMP all used `option value="60"`. When `presetEl.value = m.preset` ran with `m.preset = "60"`, the browser matched the first option with that value (always SHRM-CP). Fixed by assigning unique string keys (`shrm`, `hrci`, `pmp`, `capm`) to option values and centralizing the key→credits mapping in `PRESETS` in `calc.js`.
+
+- **"Try it" README had wrong default for credits earned**: Said "leave credits earned at 20" but the page default is 0. Fixed to "type 20 in credits earned".
+
+- **"Try it" team example date would not show Lapsed**: Dec 20 2026 as end date with today's default calc-from (Nov 2026) would be in the future, not Lapsed. Fixed by making the example concrete: "set Calculate from to Jan 1 2027", with Ali's end date Dec 15 2026 (verified: 17 days ago) and Sara's end date Dec 31 2027 (verified: 0.29 credits/week).
+
+---
+
+5. Problem Solving:
+
+- **State-restore approach for team rows**: Chose to restore all input values from the `m` model object inside `buildRowEl()` on every rebuild, rather than a more complex append/remove-only approach. This is simpler and handles both add and remove correctly.
+- **Preset key design**: Chose semantic string keys (`shrm`/`hrci`/`pmp`/`capm`) rather than numeric IDs, making `m.preset` values self-documenting and safe across rebuilds.
+- **Summary placement**: The spec said "the manager should see '2 of 5 at risk or lapsed' first" — implemented by building the summary HTML string first and prepending it before the row forEach.
+- **Curly quote prevention**: The `new Function()` syntax checker catches any future encoding issues before they reach the browser, without needing a build tool or linter.
+
+---
+
+6. All User Messages:
+
+1. "numbers check out. answers + 4 gaps: [approved S-10 criteria with: done tie-break=entry order, Incomplete vs Invalid split, summary counts only valid rows, empty name=Person N by entry order, shared calc-from uses same validation]... add criteria for those, then go ahead: update the docs, build it, add unit tests for rankTeam covering every criterion, run all tests and show me the output."
+
+2. "tested the team view in the browser. ranking, badges, summary count, remove and the 20 cap all work. but a real bug: 1. type a name and credits in row 1, click '+ Add member', and row 1's inputs go blank... fix it so adding or removing a row never clears other rows. 2. I asked for the summary line on top of the results, it's at the bottom. move it above the ranked list. rerun tests after."
+
+3. "the last change broke the whole team view. '+ Add member' does nothing now. the page console shows 'SyntaxError: Invalid or unexpected token': lines 448–465 of index.html (the summary/results rendering you just moved) use curly quotes ' ' instead of straight quotes ''. fix the quotes. then, since unit tests only cover calc.js and can't catch this, add a quick safety check: a test that extracts every <script> block from index.html and runs it through new Function() so a syntax error fails npm test. run all tests and show me."
+
+4. "add/remove works now, and so does the summary on top. one more bug: add 3 people, pick 'PMI PMP' for person 2, remove person 1, and person 2's preset now shows 'SHRM-CP / SHRM-SCP'. SHRM, HRCI and PMP all have option value '60', so restoring the select picks the first match. give each option a unique value (shrm, hrci, pmp, capm, custom) and map it to credits in one place in calc.js, e.g. PRESETS = { shrm: 60, ... }. use it in both the single view and the team view. add a unit test for the mapping. rerun tests."
+
+5. "everything checks out in the browser now. last pass before I push: - README: update the test count and coverage (69 tests, S-1 to S-8 plus S-10 ranking logic, plus the script-syntax check), and add a short line about the team view in 'what it is'. keep it tight. - make sure user-stories.md marks S-10 Implemented and nothing claims more than what's built. no other changes."
+
+6. "reviewers won't know what PDCs or recert cycles are. two clarity fixes, no logic changes: 1. replace the subtitle under the title with: 'Certifications like SHRM, HRCI and PMP need about 60 learning credits every 3 years...' 2. add a short 'Try it in 30 seconds' section near the top of the README... run tests after."
+
+7. "two mistakes in the 'Try it in 30 seconds' section: 1. 'leave credits earned at 20'. the default is 0, so it should be 'type 20 in credits earned'. 2. team example: team 'calculate from' defaults to today (Nov 2026), so an end date of Dec 20 2026 is in the future and won't show Lapsed. make it concrete: set team calculate from to Jan 1 2027, add Ali (PMI PMP, earned 10, end Dec 15 2026) and Sara (SHRM, earned 45, end Dec 31 2027). expected result: '1 of 2 at risk or lapsed', Ali Lapsed 'Cycle ended 17 days ago.' first, Sara On track '0.29 credits/week' second."
+
+8. "CRITICAL: Respond with TEXT ONLY... [summary request]"
+
+---
+
+7. Pending Tasks:
+
+None. All explicitly requested tasks have been completed:
+- S-10 docs updated and implemented
+- All bugs fixed (blank inputs, summary position, curly quotes, preset restore)
+- 69 tests passing including S-10 and syntax check
+- README updated with correct test count, team view description, verified "Try it" walkthrough
+- Subtitle updated in index.html
+- user-stories.md S-10 marked Implemented
+
+The user's last stated intent before the summary request was "last pass before I push" — all items in that pass are complete.
+
+---
+
+8. Current Work:
+
+The immediately preceding work was fixing the two mistakes in the "Try it in 30 seconds" README section:
+
+1. Changed "leave credits earned at 20" → "type 20 in credits earned" (default is 0, not 20)
+2. Rewrote the team view example to be fully concrete: set Calculate from to Jan 1 2027, add Ali (PMI PMP, earned 10, end Dec 15 2026) and Sara (SHRM-CP / SHRM-SCP, earned 45, end Dec 31 2027). Expected: summary "1 of 2 at risk or lapsed", Ali Lapsed "Cycle ended 17 days ago." first, Sara On track "0.29 credits/week" second.
+
+Numbers were verified via `node -e` before writing:
+- Ali: `calculate('60','10','2026-12-15','2027-01-01')` → state: passed, daysAgo: 17 ✓
+- Sara: `calculate('60','45','2027-12-31','2027-01-01')` → state: pace, pace: 0.29, remaining: 15, days: 365 ✓
+
+Tests confirmed 69/69 after the README edit (README changes don't affect test suite).
+
+---
+
+9. Optional Next Step:
+
+No next step is required. The user's last message before the summary request was about fixing two specific README mistakes, both of which were completed. The user had framed this as "last pass before I push," suggesting they intend to push to git next — but that is their action, not a pending code task.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: C:\Users\Saima Baqir\.claude\projects\c--Users-Saima-Baqir-Desktop-muhammad-ahsan-calculator\181f7153-e869-4bb8-a01e-e9138cc4c95d.jsonl
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:20:08 UTC</sub>
+
+<local-command-caveat>Caveat: The messages below were generated by the user while running local commands. DO NOT respond to these messages or otherwise consider them in your response unless the user explicitly asks you to.</local-command-caveat>
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:20:08 UTC</sub>
+
+<command-name>/compact</command-name>
+            <command-message>compact</command-message>
+            <command-args></command-args>
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:22:37 UTC</sub>
+
+<local-command-stdout>Compacted </local-command-stdout>
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:35:59 UTC</sub>
+
+had an independent review. fixing the small stuff before I send:
+1. typing "1,001" in credits earned says "must be a number" but S-7 promises "cannot exceed 1,000". accept thousands commas in all credit inputs (strip them before validating). add tests.
+2. "Calculate-from date must be between 2000 and 2100." and the team view's "Enter a valid calculate-from date to see the team." exist in the app but not in the docs. add both to the error table, with criteria.
+3. an impossible calculate-from date returns "is required". give it the same "not a valid calendar date" style message as the end date.
+4. the Panel display rule promises blue/green/grey card borders that don't exist. make the docs match the actual styling, don't add borders.
+5. team view on narrow screens: put the results card above the member list below 768px, so the summary is visible without scrolling.
+6. invalid team row: also show the error and a red outline on the row's own inputs, not just in the results.
+7. team result line says "15 remaining", make it "15 credits remaining".
+run all tests and show me the output.
+
+
+**Claude:**
+
+Let me read the current files to understand the exact state before making changes.
+
+<details><summary>🔧 Tool call: <code>Read</code></summary>
+
+````
+{
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.js",
+  "offset": 44,
+  "limit": 25
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+44	// Validate credits-earned string. Returns { ok, error }.
+45	function validateEarned(str) {
+46	  if (str === null || str === undefined || String(str).trim() === '') {
+47	    return { ok: true, error: null, units: 0 }; // empty → treat as 0
+48	  }
+49	  var s = String(str).trim();
+50	  if (!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) {
+51	    return { ok: false, error: 'Credits earned must be a number.' };
+52	  }
+53	  if (decimalPlaces(s) > 2) {
+54	    return { ok: false, error: 'Credits earned cannot have more than 2 decimal places.' };
+55	  }
+56	  var units = Math.round(parseFloat(s) * 100);
+57	  if (units < 0) {
+58	    return { ok: false, error: 'Credits earned cannot be negative.' };
+59	  }
+60	  if (units > 100000) { // > 1000
+61	    return { ok: false, error: 'Credits earned cannot exceed 1,000.' };
+62	  }
+63	  return { ok: true, error: null, units: units };
+64	}
+65	
+66	// Parse "YYYY-MM-DD" → { y, mo, d } or null. Returns null for impossible dates (e.g. Feb 30).
+67	function parseDate(str) {
+68	  if (!str) return null;
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Read</code></summary>
+
+````
+{
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.test.js"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+1	'use strict';
+2	const { describe, it } = require('node:test');
+3	const assert = require('node:assert/strict');
+4	const fs = require('fs');
+5	const path = require('path');
+6	const {
+7	  PRESETS,
+8	  calcDaysLeft,
+9	  calcPaceUnits,
+10	  formatCredits,
+11	  formatDate,
+12	  validateRequired,
+13	  validateEarned,
+14	  validateEndDate,
+15	  validateFromDate,
+16	  calculate,
+17	  rankTeam,
+18	} = require('./calc.js');
+19	
+20	// ---------------------------------------------------------------------------
+21	// S-1 · Weekly pace (core calculations)
+22	// ---------------------------------------------------------------------------
+23	describe('S-1 · Weekly pace', () => {
+24	  it('AC1: 60 req, 20 earned, 70 days → 4 credits/week, 40 remaining, 70 days left', () => {
+25	    const r = calculate('60', '20', '2027-03-11', '2027-01-01');
+26	    assert.equal(r.state, 'pace');
+27	    assert.equal(r.paceDisplay, '4');
+28	    assert.equal(r.remainingDisplay, '40');
+29	    assert.equal(r.daysLeft, 70);
+30	  });
+31	
+32	  it('AC2: 60 req, 20 earned, 73 days → 3.84 credits/week, 40 remaining, 73 days left', () => {
+33	    const r = calculate('60', '20', '2027-03-14', '2027-01-01');
+34	    assert.equal(r.state, 'pace');
+35	    assert.equal(r.paceDisplay, '3.84');
+36	    assert.equal(r.remainingDisplay, '40');
+37	    assert.equal(r.daysLeft, 73);
+38	  });
+39	
+40	  it('AC3: 60 req, 59.99 earned, 70 days → 0.01 credits/week, 0.01 remaining, 70 days left', () => {
+41	    const r = calculate('60', '59.99', '2027-03-11', '2027-01-01');
+42	    assert.equal(r.state, 'pace');
+43	    assert.equal(r.paceDisplay, '0.01');
+44	    assert.equal(r.remainingDisplay, '0.01');
+45	    assert.equal(r.daysLeft, 70);
+46	  });
+47	
+48	  it('AC4: 500 req, 0 earned, 364 days → 9.62 credits/week, 500 remaining, 364 days left', () => {
+49	    const r = calculate('500', '0', '2027-12-30', '2027-01-01');
+50	    assert.equal(r.state, 'pace');
+51	    assert.equal(r.paceDisplay, '9.62');
+52	    assert.equal(r.remainingDisplay, '500');
+53	    assert.equal(r.daysLeft, 364);
+54	  });
+55	
+56	  it('AC5: 500 req, 0 earned, 70 days → at-risk + 50 credits/week, 500 remaining, 70 days left', () => {
+57	    const r = calculate('500', '0', '2027-03-11', '2027-01-01');
+58	    assert.equal(r.state, 'pace');
+59	    assert.equal(r.isAtRisk, true);
+60	    assert.equal(r.paceDisplay, '50');
+61	    assert.equal(r.remainingDisplay, '500');
+62	    assert.equal(r.daysLeft, 70);
+63	  });
+64	
+65	  it('AC6: empty earned treated as 0 → 6 credits/week, 60 remaining, 70 days left', () => {
+66	    const r = calculate('60', '', '2027-03-11', '2027-01-01');
+67	    assert.equal(r.state, 'pace');
+68	    assert.equal(r.paceDisplay, '6');
+69	    assert.equal(r.remainingDisplay, '60');
+70	    assert.equal(r.daysLeft, 70);
+71	  });
+72	
+73	  it('AC7: live update — earned 20→30 → 3 credits/week, 30 remaining, 70 days left', () => {
+74	    const r = calculate('60', '30', '2027-03-11', '2027-01-01');
+75	    assert.equal(r.state, 'pace');
+76	    assert.equal(r.paceDisplay, '3');
+77	    assert.equal(r.remainingDisplay, '30');
+78	    assert.equal(r.daysLeft, 70);
+79	  });
+80	
+81	  it('AC8: empty state shown when credits required is empty', () => {
+82	    const r = calculate('', '0', '2027-03-11', '2027-01-01');
+83	    assert.equal(r.state, 'empty');
+84	    assert.equal(r.errors.required, null);
+85	  });
+86	});
+87	
+88	// ---------------------------------------------------------------------------
+89	// S-2 · Urgency (< 7 days)
+90	// ---------------------------------------------------------------------------
+91	describe('S-2 · Urgency', () => {
+92	  it('AC1: 6 days left, 10 remaining → "You need 10 credits in the next 6 days.", no at-risk', () => {
+93	    const r = calculate('60', '50', '2027-12-31', '2027-12-26');
+94	    assert.equal(r.state, 'urgency');
+95	    assert.equal(r.remainingDisplay, '10');
+96	    assert.equal(r.daysLeft, 6);
+97	    assert.equal(r.isAtRisk, false);
+98	  });
+99	
+100	  it('AC2: 2 days left, 10 remaining → "You need 10 credits in the next 2 days.", no at-risk', () => {
+101	    const r = calculate('60', '50', '2027-12-31', '2027-12-30');
+102	    assert.equal(r.state, 'urgency');
+103	    assert.equal(r.remainingDisplay, '10');
+104	    assert.equal(r.daysLeft, 2);
+105	    assert.equal(r.isAtRisk, false);
+106	  });
+107	
+108	  it('AC3: 1 day left, 10 remaining → "You need 10 credits today.", at-risk (pace=70)', () => {
+109	    const r = calculate('60', '50', '2027-12-31', '2027-12-31');
+110	    assert.equal(r.state, 'urgency');
+111	    assert.equal(r.remainingDisplay, '10');
+112	    assert.equal(r.daysLeft, 1);
+113	    assert.equal(r.isAtRisk, true);
+114	  });
+115	
+116	  it('AC4: exactly 7 days left → weekly pace state, not urgency', () => {
+117	    const r = calculate('60', '50', '2027-12-31', '2027-12-25');
+118	    assert.equal(r.state, 'pace');
+119	    assert.equal(r.paceDisplay, '10');
+120	    assert.equal(r.remainingDisplay, '10');
+121	    assert.equal(r.daysLeft, 7);
+122	  });
+123	});
+124	
+125	// ---------------------------------------------------------------------------
+126	// S-3 · Requirement met
+127	// ---------------------------------------------------------------------------
+128	describe('S-3 · Requirement met', () => {
+129	  it('AC1: earned = required → "Requirement met. You have 60 of 60 credits."', () => {
+130	    const r = calculate('60', '60', '2027-12-31', '2027-01-01');
+131	    assert.equal(r.state, 'met');
+132	    assert.equal(r.earnedDisplay, '60');
+133	    assert.equal(r.requiredDisplay, '60');
+134	    assert.equal(r.extraDisplay, null);
+135	  });
+136	
+137	  it('AC2: earned > required → shows extra credits', () => {
+138	    const r = calculate('60', '65', '2027-12-31', '2027-01-01');
+139	    assert.equal(r.state, 'met');
+140	    assert.equal(r.earnedDisplay, '65');
+141	    assert.equal(r.requiredDisplay, '60');
+142	    assert.equal(r.extraDisplay, '5');
+143	  });
+144	
+145	  it('AC3: earned = required AND deadline passed → requirement-met, not deadline-passed', () => {
+146	    const r = calculate('60', '60', '2027-12-31', '2028-01-01');
+147	    assert.equal(r.state, 'met');
+148	  });
+149	
+150	  it('AC4: earned = 59.99 < 60 → NOT met, shows weekly pace', () => {
+151	    const r = calculate('60', '59.99', '2027-03-11', '2027-01-01');
+152	    assert.equal(r.state, 'pace');
+153	    assert.equal(r.paceDisplay, '0.01');
+154	  });
+155	});
+156	
+157	// ---------------------------------------------------------------------------
+158	// S-4 · Deadline passed
+159	// ---------------------------------------------------------------------------
+160	describe('S-4 · Deadline passed', () => {
+161	  it('AC1: 1 day past → "Cycle ended on Dec 31, 2027 (1 day ago)."', () => {
+162	    const r = calculate('60', '50', '2027-12-31', '2028-01-01');
+163	    assert.equal(r.state, 'passed');
+164	    assert.equal(r.endDateDisplay, 'Dec 31, 2027');
+165	    assert.equal(r.daysAgo, 1);
+166	  });
+167	
+168	  it('AC2: 31 days past → 31 days ago', () => {
+169	    const r = calculate('60', '50', '2027-12-31', '2028-01-31');
+170	    assert.equal(r.state, 'passed');
+171	    assert.equal(r.endDateDisplay, 'Dec 31, 2027');
+172	    assert.equal(r.daysAgo, 31);
+173	  });
+174	
+175	  it('AC3: earned = required AND deadline passed → requirement-met wins', () => {
+176	    const r = calculate('60', '60', '2027-12-31', '2028-01-01');
+177	    assert.equal(r.state, 'met');
+178	  });
+179	});
+180	
+181	// ---------------------------------------------------------------------------
+182	// S-5 · At-risk warning
+183	// ---------------------------------------------------------------------------
+184	describe('S-5 · At-risk warning', () => {
+185	  it('AC1: pace exactly 40 → NOT at risk', () => {
+186	    const r = calculate('500', '100', '2027-03-11', '2027-01-01');
+187	    assert.equal(r.state, 'pace');
+188	    assert.equal(r.paceDisplay, '40');
+189	    assert.equal(r.isAtRisk, false);
+190	  });
+191	
+192	  it('AC2: pace 40.1 → at-risk warning appears', () => {
+193	    const r = calculate('500', '99', '2027-03-11', '2027-01-01');
+194	    assert.equal(r.state, 'pace');
+195	    assert.equal(r.paceDisplay, '40.1');
+196	    assert.equal(r.remainingDisplay, '401');
+197	    assert.equal(r.daysLeft, 70);
+198	    assert.equal(r.isAtRisk, true);
+199	  });
+200	
+201	  it('AC3: urgency + at-risk → warning appears above urgency message', () => {
+202	    const r = calculate('60', '50', '2027-12-31', '2027-12-31');
+203	    assert.equal(r.state, 'urgency');
+204	    assert.equal(r.isAtRisk, true);
+205	  });
+206	
+207	  it('AC4: requirement met → no at-risk warning', () => {
+208	    const r = calculate('60', '60', '2027-12-31', '2027-01-01');
+209	    assert.equal(r.state, 'met');
+210	    // no isAtRisk property in met state — that's correct
+211	  });
+212	
+213	  it('AC5: deadline passed → no at-risk warning', () => {
+214	    const r = calculate('60', '50', '2027-12-31', '2028-01-31');
+215	    assert.equal(r.state, 'passed');
+216	    // no isAtRisk property in passed state — that's correct
+217	  });
+218	});
+219	
+220	// ---------------------------------------------------------------------------
+221	// S-6 · Future calculate-from date / leap year
+222	// ---------------------------------------------------------------------------
+223	describe('S-6 · Future calc-from date', () => {
+224	  it('AC1: calc-from Dec 1 2027, end Jan 9 2028 (40 days) → 7 credits/week', () => {
+225	    const r = calculate('60', '20', '2028-01-09', '2027-12-01');
+226	    assert.equal(r.state, 'pace');
+227	    assert.equal(r.paceDisplay, '7');
+228	    assert.equal(r.remainingDisplay, '40');
+229	    assert.equal(r.daysLeft, 40);
+230	  });
+231	
+232	  it('AC2a: calc-from Apr 1 2027, 90 days → 2.8 credits/week', () => {
+233	    const r = calculate('60', '24', '2027-06-29', '2027-04-01');
+234	    assert.equal(r.state, 'pace');
+235	    assert.equal(r.paceDisplay, '2.8');
+236	    assert.equal(r.remainingDisplay, '36');
+237	    assert.equal(r.daysLeft, 90);
+238	  });
+239	
+240	  it('AC2b: calc-from Jan 1 2027, 180 days → 1.4 credits/week (double pace for earlier start)', () => {
+241	    const r = calculate('60', '24', '2027-06-29', '2027-01-01');
+242	    assert.equal(r.state, 'pace');
+243	    assert.equal(r.paceDisplay, '1.4');
+244	    assert.equal(r.remainingDisplay, '36');
+245	    assert.equal(r.daysLeft, 180);
+246	  });
+247	
+248	  it('AC3: calc-from after end → deadline-passed state', () => {
+249	    const r = calculate('60', '50', '2027-12-31', '2028-01-01');
+250	    assert.equal(r.state, 'passed');
+251	  });
+252	
+253	  it('AC4a: leap year 2028 — Feb 28 to Mar 1 = 3 days → urgency "3 credits in next 3 days"', () => {
+254	    const r = calculate('60', '57', '2028-03-01', '2028-02-28');
+255	    assert.equal(r.state, 'urgency');
+256	    assert.equal(r.daysLeft, 3);
+257	    assert.equal(r.remainingDisplay, '3');
+258	  });
+259	
+260	  it('AC4b: non-leap year 2027 — Feb 28 to Mar 1 = 2 days → urgency "3 credits in next 2 days"', () => {
+261	    const r = calculate('60', '57', '2027-03-01', '2027-02-28');
+262	    assert.equal(r.state, 'urgency');
+263	    assert.equal(r.daysLeft, 2);
+264	    assert.equal(r.remainingDisplay, '3');
+265	  });
+266	});
+267	
+268	// ---------------------------------------------------------------------------
+269	// S-7 · Input validation
+270	// ---------------------------------------------------------------------------
+271	describe('S-7 · Input validation', () => {
+272	  it('AC1: credits required = 0 → "Credits required must be greater than 0."', () => {
+273	    const r = calculate('0', '0', '2027-12-31', '2027-01-01');
+274	    assert.equal(r.state, 'error');
+275	    assert.equal(r.errors.required, 'Credits required must be greater than 0.');
+276	  });
+277	
+278	  it('AC2: credits required = 501 → "Credits required cannot exceed 500."', () => {
+279	    const r = calculate('501', '0', '2027-12-31', '2027-01-01');
+280	    assert.equal(r.state, 'error');
+281	    assert.equal(r.errors.required, 'Credits required cannot exceed 500.');
+282	  });
+283	
+284	  it('AC3: credits required = "abc" → "Credits required must be a number."', () => {
+285	    const r = calculate('abc', '0', '2027-12-31', '2027-01-01');
+286	    assert.equal(r.state, 'error');
+287	    assert.equal(r.errors.required, 'Credits required must be a number.');
+288	  });
+289	
+290	  it('AC4: credits required = 60.555 → "Credits required cannot have more than 2 decimal places."', () => {
+291	    const r = calculate('60.555', '0', '2027-12-31', '2027-01-01');
+292	    assert.equal(r.state, 'error');
+293	    assert.equal(r.errors.required, 'Credits required cannot have more than 2 decimal places.');
+294	  });
+295	
+296	  it('AC5: credits earned = -1 → "Credits earned cannot be negative."', () => {
+297	    const r = calculate('60', '-1', '2027-12-31', '2027-01-01');
+298	    assert.equal(r.state, 'error');
+299	    assert.equal(r.errors.earned, 'Credits earned cannot be negative.');
+300	  });
+301	
+302	  it('AC6: credits earned = 1001 → "Credits earned cannot exceed 1,000."', () => {
+303	    const r = calculate('60', '1001', '2027-12-31', '2027-01-01');
+304	    assert.equal(r.state, 'error');
+305	    assert.equal(r.errors.earned, 'Credits earned cannot exceed 1,000.');
+306	  });
+307	
+308	  it('AC7: credits earned = "abc" → "Credits earned must be a number."', () => {
+309	    const r = calculate('60', 'abc', '2027-12-31', '2027-01-01');
+310	    assert.equal(r.state, 'error');
+311	    assert.equal(r.errors.earned, 'Credits earned must be a number.');
+312	  });
+313	
+314	  it('AC8: credits earned = 60.555 → "Credits earned cannot have more than 2 decimal places."', () => {
+315	    const r = calculate('60', '60.555', '2027-12-31', '2027-01-01');
+316	    assert.equal(r.state, 'error');
+317	    assert.equal(r.errors.earned, 'Credits earned cannot have more than 2 decimal places.');
+318	  });
+319	
+320	  it('AC9: end date year = 1999 → "Cycle end date must be between 2000 and 2100."', () => {
+321	    const r = calculate('60', '0', '1999-12-31', '2027-01-01');
+322	    assert.equal(r.state, 'error');
+323	    assert.equal(r.errors.endDate, 'Cycle end date must be between 2000 and 2100.');
+324	  });
+325	
+326	  it('AC10: end date year = 2101 → "Cycle end date must be between 2000 and 2100."', () => {
+327	    const r = calculate('60', '0', '2101-01-01', '2027-01-01');
+328	    assert.equal(r.state, 'error');
+329	    assert.equal(r.errors.endDate, 'Cycle end date must be between 2000 and 2100.');
+330	  });
+331	
+332	  it('AC11: calc-from cleared → "Calculate-from date is required."', () => {
+333	    const r = calculate('60', '0', '2027-12-31', '');
+334	    assert.equal(r.state, 'error');
+335	    assert.equal(r.errors.fromDate, 'Calculate-from date is required.');
+336	  });
+337	
+338	  it('AC12: end date empty with valid required + calc-from → no error, no result (empty state)', () => {
+339	    const r = calculate('60', '0', '', '2027-01-01');
+340	    assert.equal(r.state, 'empty');
+341	    assert.equal(r.errors.endDate, null);
+342	  });
+343	
+344	  it('AC13: error corrected → result appears (501 → 60, end Mar 11 2027, from Jan 1 2027, earned 20 → "4 credits/week")', () => {
+345	    const r = calculate('60', '20', '2027-03-11', '2027-01-01');
+346	    assert.equal(r.state, 'pace');
+347	    assert.equal(r.paceDisplay, '4');
+348	  });
+349	
+350	  it('AC14: end date cleared → empty state (no error shown for end date)', () => {
+351	    const r = calculate('60', '20', '', '2027-01-01');
+352	    assert.equal(r.state, 'empty');
+353	    assert.equal(r.errors.endDate, null);
+354	  });
+355	
+356	  it('AC15: impossible end date Feb 30 → "Cycle end date is not a valid calendar date."', () => {
+357	    const r = calculate('60', '0', '2027-02-30', '2027-01-01');
+358	    assert.equal(r.state, 'error');
+359	    assert.equal(r.errors.endDate, 'Cycle end date is not a valid calendar date.');
+360	  });
+361	
+362	  it('AC16: leading decimal ".5" accepted as 0.5 credits earned', () => {
+363	    const r = calculate('60', '.5', '2027-03-11', '2027-01-01');
+364	    assert.equal(r.state, 'pace');
+365	    assert.equal(r.remainingDisplay, '59.5');
+366	  });
+367	
+368	  it('AC17: leading decimal ".5" accepted as 0.5 credits required', () => {
+369	    const r = calculate('.5', '0', '2027-03-11', '2027-01-01');
+370	    assert.equal(r.state, 'pace');
+371	    assert.equal(r.remainingDisplay, '0.5');
+372	  });
+373	});
+374	
+375	// ---------------------------------------------------------------------------
+376	// S-8 · Preset selector (pure logic only — no DOM)
+377	// ---------------------------------------------------------------------------
+378	describe('S-8 · Preset values', () => {
+379	  it('AC1: PRESETS map — shrm=60, hrci=60, pmp=60, capm=15', () => {
+380	    assert.equal(PRESETS.shrm, 60);
+381	    assert.equal(PRESETS.hrci, 60);
+382	    assert.equal(PRESETS.pmp,  60);
+383	    assert.equal(PRESETS.capm, 15);
+384	  });
+385	
+386	  it('AC2: all keys are present, no extra keys', () => {
+387	    assert.deepEqual(Object.keys(PRESETS).sort(), ['capm', 'hrci', 'pmp', 'shrm']);
+388	  });
+389	
+390	  it('AC3+AC4: calculation with preset credit values works (60 → pace, 15 → pace)', () => {
+391	    const r60 = calculate(String(PRESETS.pmp),  '0', '2027-03-11', '2027-01-01');
+392	    assert.equal(r60.state, 'pace');
+393	    const r15 = calculate(String(PRESETS.capm), '0', '2027-03-11', '2027-01-01');
+394	    assert.equal(r15.state, 'pace');
+395	    assert.equal(r15.remainingDisplay, '15');
+396	  });
+397	});
+398	
+399	// ---------------------------------------------------------------------------
+400	// S-9 · Reset (pure logic — reset produces default calculate output)
+401	// ---------------------------------------------------------------------------
+402	describe('S-9 · Reset', () => {
+403	  it('AC1: after reset, empty required + empty end date → empty state', () => {
+404	    const r = calculate('', '0', '', '2026-11-23'); // today as default
+405	    assert.equal(r.state, 'empty');
+406	  });
+407	
+408	  it('AC2: after reset, errors clear — no errors in empty state', () => {
+409	    const r = calculate('', '0', '', '2026-11-23');
+410	    assert.equal(r.errors.required, null);
+411	    assert.equal(r.errors.endDate, null);
+412	    assert.equal(r.errors.fromDate, null);
+413	  });
+414	});
+415	
+416	// ---------------------------------------------------------------------------
+417	// S-10 · Team view — rankTeam()
+418	// ---------------------------------------------------------------------------
+419	// calc-from anchor used throughout
+420	const FROM = '2027-01-01';
+421	
+422	// helpers
+423	function badges(rows) { return rows.map(r => r.badge); }
+424	function names(rows)  { return rows.map(r => r.displayName); }
+425	
+426	describe('S-10 · rankTeam — five-person ordering', () => {
+427	  const members = [
+428	    { name: 'Alice', required: '60',  earned: '60', endDate: '2027-03-11' }, // Done
+429	    { name: 'Bob',   required: '60',  earned: '10', endDate: '2026-12-20' }, // Lapsed
+430	    { name: 'Carol', required: '60',  earned: '50', endDate: '2027-01-05' }, // Urgent  (5 days, pace 14)
+431	    { name: 'Dave',  required: '60',  earned: '20', endDate: '2027-03-11' }, // On track (70 days, pace 4)
+432	    { name: 'Eve',   required: '500', earned: '0',  endDate: '2027-03-11' }, // At risk  (70 days, pace 50)
+433	  ];
+434	  const ranked = rankTeam(members, FROM);
+435	
+436	  it('AC1: order is Lapsed → At risk → Urgent → On track → Done', () => {
+437	    assert.deepEqual(badges(ranked), ['Lapsed', 'At risk', 'Urgent', 'On track', 'Done']);
+438	  });
+439	
+440	  it('AC1: names follow rank (Bob Eve Carol Dave Alice)', () => {
+441	    assert.deepEqual(names(ranked), ['Bob', 'Eve', 'Carol', 'Dave', 'Alice']);
+442	  });
+443	});
+444	
+445	describe('S-10 · rankTeam — At-risk tie-break (highest pace first)', () => {
+446	  // Frank pace 50 (500÷70×7), Grace pace 43 (430÷70×7 = 43.0)
+447	  const members = [
+448	    { name: 'Grace', required: '430', earned: '0', endDate: '2027-03-11' },
+449	    { name: 'Frank', required: '500', earned: '0', endDate: '2027-03-11' },
+450	  ];
+451	  const ranked = rankTeam(members, FROM);
+452	
+453	  it('AC2: Frank (pace 50) before Grace (pace 43)', () => {
+454	    assert.equal(ranked[0].displayName, 'Frank');
+455	    assert.equal(ranked[1].displayName, 'Grace');
+456	  });
+457	});
+458	
+459	describe('S-10 · rankTeam — Urgent tie-break (highest pace first)', () => {
+460	  // Jan 1→Jan 5 = 5 days. Hina: 12.5 rem ÷ 5 × 7 = 17.5. Ivan: 5 rem ÷ 5 × 7 = 7.
+461	  const members = [
+462	    { name: 'Ivan', required: '60', earned: '55',   endDate: '2027-01-05' },
+463	    { name: 'Hina', required: '60', earned: '47.5', endDate: '2027-01-05' },
+464	  ];
+465	  const ranked = rankTeam(members, FROM);
+466	
+467	  it('AC3: Hina (pace 17.5) before Ivan (pace 7)', () => {
+468	    assert.equal(ranked[0].displayName, 'Hina');
+469	    assert.equal(ranked[1].displayName, 'Ivan');
+470	  });
+471	});
+472	
+473	describe('S-10 · rankTeam — On-track tie-break (highest pace first)', () => {
+474	  // Jana: Jan 1→Feb 8 = 39 days, 40 rem → pace 7.18. Karl: 70 days, 12 rem → pace 1.2.
+475	  const members = [
+476	    { name: 'Karl', required: '60', earned: '48', endDate: '2027-03-11' },
+477	    { name: 'Jana', required: '60', earned: '20', endDate: '2027-02-08' },
+478	  ];
+479	  const ranked = rankTeam(members, FROM);
+480	
+481	  it('AC4: Jana (pace 7.18) before Karl (pace 1.2)', () => {
+482	    assert.equal(ranked[0].displayName, 'Jana');
+483	    assert.equal(ranked[1].displayName, 'Karl');
+484	  });
+485	});
+486	
+487	describe('S-10 · rankTeam — Lapsed tie-break (most days ago first)', () => {
+488	  // Leo end Dec 22 2026: daysLeft = Dec 22 − Jan 1 + 1 = −9 → daysAgo = 10.
+489	  // Mia end Dec 27 2026: daysLeft = −4 → daysAgo = 5.
+490	  const members = [
+491	    { name: 'Mia', required: '60', earned: '10', endDate: '2026-12-27' },
+492	    { name: 'Leo', required: '60', earned: '10', endDate: '2026-12-22' },
+493	  ];
+494	  const ranked = rankTeam(members, FROM);
+495	
+496	  it('AC5: Leo (10 days ago) before Mia (5 days ago)', () => {
+497	    assert.equal(ranked[0].displayName, 'Leo');
+498	    assert.equal(ranked[1].displayName, 'Mia');
+499	  });
+500	});
+501	
+502	describe('S-10 · rankTeam — Done tie-break (entry order)', () => {
+503	  const members = [
+504	    { name: 'Nora',  required: '60', earned: '60', endDate: '2027-03-11' },
+505	    { name: 'Oscar', required: '60', earned: '60', endDate: '2027-03-11' },
+506	  ];
+507	  const ranked = rankTeam(members, FROM);
+508	
+509	  it('AC6: Nora before Oscar (entry order)', () => {
+510	    assert.equal(ranked[0].displayName, 'Nora');
+511	    assert.equal(ranked[1].displayName, 'Oscar');
+512	  });
+513	});
+514	
+515	describe('S-10 · rankTeam — Incomplete and Invalid', () => {
+516	  it('AC7: blank row → Incomplete badge, no error', () => {
+517	    const ranked = rankTeam([{ name: '', required: '', earned: '', endDate: '' }], FROM);
+518	    assert.equal(ranked[0].badge, 'Incomplete');
+519	    assert.equal(ranked[0].result.errors.required, null);
+520	  });
+521	
+522	  it('AC8: required="abc" → Invalid badge, field error shown', () => {
+523	    const ranked = rankTeam([{ name: '', required: 'abc', earned: '0', endDate: '2027-03-11' }], FROM);
+524	    assert.equal(ranked[0].badge, 'Invalid');
+525	    assert.ok(ranked[0].result.errors.required);
+526	  });
+527	
+528	  it('AC9: 3 valid + 1 Invalid + 1 Incomplete → valid first, then Invalid, then Incomplete', () => {
+529	    const members = [
+530	      { name: 'A', required: '',    earned: '',  endDate: ''           }, // Incomplete
+531	      { name: 'B', required: 'abc', earned: '0', endDate: '2027-03-11' }, // Invalid
+532	      { name: 'C', required: '60',  earned: '60',endDate: '2027-03-11' }, // Done
+533	      { name: 'D', required: '60',  earned: '20',endDate: '2027-03-11' }, // On track
+534	      { name: 'E', required: '500', earned: '0', endDate: '2027-03-11' }, // At risk
+535	    ];
+536	    const ranked = rankTeam(members, FROM);
+537	    assert.deepEqual(badges(ranked), ['At risk', 'On track', 'Done', 'Invalid', 'Incomplete']);
+538	  });
+539	});
+540	
+541	describe('S-10 · rankTeam — summary counts', () => {
+542	  it('AC10: 5 valid rows — 2 at risk or lapsed out of 5', () => {
+543	    const members = [
+544	      { name: 'Bob',   required: '60',  earned: '10', endDate: '2026-12-20' }, // Lapsed
+545	      { name: 'Eve',   required: '500', earned: '0',  endDate: '2027-03-11' }, // At risk
+546	      { name: 'Carol', required: '60',  earned: '50', endDate: '2027-01-05' }, // Urgent
+547	      { name: 'Dave',  required: '60',  earned: '20', endDate: '2027-03-11' }, // On track
+548	      { name: 'Alice', required: '60',  earned: '60', endDate: '2027-03-11' }, // Done
+549	    ];
+550	    const ranked = rankTeam(members, FROM);
+551	    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+552	    const danger = ranked.filter(r => r.badge === 'At risk' || r.badge === 'Lapsed');
+553	    assert.equal(valid.length, 5);
+554	    assert.equal(danger.length, 2);
+555	  });
+556	
+557	  it('AC11: all Incomplete → 0 valid rows', () => {
+558	    const ranked = rankTeam([
+559	      { name: '', required: '', earned: '', endDate: '' },
+560	      { name: '', required: '', earned: '', endDate: '' },
+561	    ], FROM);
+562	    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+563	    assert.equal(valid.length, 0);
+564	  });
+565	
+566	  it('AC12: 2 valid + 2 Incomplete → valid.length = 2', () => {
+567	    const members = [
+568	      { name: 'X', required: '60', earned: '20', endDate: '2027-03-11' },
+569	      { name: 'Y', required: '60', earned: '60', endDate: '2027-03-11' },
+570	      { name: '',  required: '',   earned: '',   endDate: '' },
+571	      { name: '',  required: '',   earned: '',   endDate: '' },
+572	    ];
+573	    const ranked = rankTeam(members, FROM);
+574	    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+575	    assert.equal(valid.length, 2);
+576	  });
+577	});
+578	
+579	describe('S-10 · rankTeam — empty name uses entry position', () => {
+580	  it('AC13: row at entry index 2 (position 3) with no name → "Person 3"', () => {
+581	    const members = [
+582	      { name: 'Alice', required: '60', earned: '20', endDate: '2027-03-11' },
+583	      { name: 'Bob',   required: '60', earned: '20', endDate: '2027-03-11' },
+584	      { name: '',      required: '60', earned: '20', endDate: '2027-03-11' }, // index 2
+585	    ];
+586	    const ranked = rankTeam(members, FROM);
+587	    const noName = ranked.find(r => r.entryOrder === 2);
+588	    assert.equal(noName.displayName, 'Person 3');
+589	  });
+590	});
+591	
+592	// ---------------------------------------------------------------------------
+593	// HTML script-syntax check
+594	// Extracts every <script> block from index.html (excluding src= tags) and
+595	// runs each through new Function() so a JS syntax error fails the suite.
+596	// ---------------------------------------------------------------------------
+597	describe('index.html — script syntax', () => {
+598	  const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+599	  const scriptRe = /<script(?:\s[^>]*)?>([^]*?)<\/script>/gi;
+600	  let match;
+601	  let blockIndex = 0;
+602	  while ((match = scriptRe.exec(html)) !== null) {
+603	    const attrs = match[0].slice(0, match[0].indexOf('>'));
+604	    if (attrs.includes('src=')) continue; // external file, skip
+605	    const src = match[1];
+606	    const idx = ++blockIndex;
+607	    it('inline script block ' + idx + ' parses without syntax errors', () => {
+608	      assert.doesNotThrow(() => new Function(src), 'syntax error in block ' + idx);
+609	    });
+610	  }
+611	});
+612	
+````
+
+</details>
+
+
+**Claude:**
+
+Now let me read the index.html to understand the current state of the team view and UI:
+
+<details><summary>🔧 Tool call: <code>Read</code></summary>
+
+````
+{
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\index.html"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+1	<!DOCTYPE html>
+2	<html lang="en">
+3	<head>
+4	  <meta charset="UTF-8">
+5	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+6	  <title>Renewal Runway — Recertification Pace Calculator</title>
+7	  <link rel="stylesheet" href="style.css">
+8	</head>
+9	<body>
+10	
+11	<header>
+12	  <h1>Renewal Runway</h1>
+13	  <p>Certifications like SHRM, HRCI and PMP need about 60 learning credits every 3 years. Enter yours to see how much to study each week, or switch to Team view to see who on your team is at risk.</p>
+14	</header>
+15	
+16	<main>
+17	
+18	  <!-- Tab bar -->
+19	  <nav class="tab-bar" role="tablist" aria-label="Views">
+20	    <button class="tab" role="tab" id="tab-single" aria-selected="true"
+21	            aria-controls="panel-single" type="button">My renewal</button>
+22	    <button class="tab" role="tab" id="tab-team" aria-selected="false"
+23	            aria-controls="panel-team" type="button">Team view</button>
+24	  </nav>
+25	
+26	  <!-- ── My renewal panel ──────────────────────────────────────────────── -->
+27	  <div id="panel-single" role="tabpanel" aria-labelledby="tab-single">
+28	
+29	    <!-- Inputs card -->
+30	    <section class="card" aria-label="Certification details">
+31	      <h2>Your details</h2>
+32	
+33	      <!-- Preset -->
+34	      <div class="preset-row">
+35	        <div class="form-group">
+36	          <label for="preset">Certification preset</label>
+37	          <select id="preset" aria-label="Certification preset">
+38	            <option value="">Custom</option>
+39	            <option value="shrm">SHRM-CP / SHRM-SCP</option>
+40	            <option value="hrci">HRCI PHR / SPHR</option>
+41	            <option value="pmp">PMI PMP</option>
+42	            <option value="capm">PMI CAPM</option>
+43	          </select>
+44	        </div>
+45	        <button class="btn-reset" id="resetBtn" type="button" aria-label="Reset all fields">Reset</button>
+46	      </div>
+47	
+48	      <!-- Credits required -->
+49	      <div class="form-group" style="margin-top:16px">
+50	        <label for="required">Credits required</label>
+51	        <input type="text" id="required" inputmode="decimal" placeholder="e.g. 60"
+52	               aria-required="true" aria-describedby="required-error" autocomplete="off">
+53	        <div class="field-error" id="required-error" role="alert"></div>
+54	      </div>
+55	
+56	      <!-- Credits earned -->
+57	      <div class="form-group">
+58	        <label for="earned">Credits earned <span class="optional">(default 0)</span></label>
+59	        <input type="text" id="earned" inputmode="decimal" placeholder="0"
+60	               aria-describedby="earned-error" autocomplete="off">
+61	        <div class="field-error" id="earned-error" role="alert"></div>
+62	      </div>
+63	
+64	      <!-- Date row -->
+65	      <div class="row-2">
+66	        <div class="form-group">
+67	          <label for="fromDate">Calculate from</label>
+68	          <input type="date" id="fromDate" aria-required="true" aria-describedby="fromDate-error"
+69	                 min="2000-01-01" max="2100-12-31">
+70	          <div class="field-error" id="fromDate-error" role="alert"></div>
+71	        </div>
+72	        <div class="form-group">
+73	          <label for="endDate">Cycle end date</label>
+74	          <input type="date" id="endDate" aria-required="true" aria-describedby="endDate-error"
+75	                 min="2000-01-01" max="2100-12-31">
+76	          <div class="field-error" id="endDate-error" role="alert"></div>
+77	        </div>
+78	      </div>
+79	
+80	    </section>
+81	
+82	    <!-- Results card -->
+83	    <section class="card" id="results" aria-label="Result" aria-live="polite" aria-atomic="true">
+84	      <h2>Your pace</h2>
+85	      <div class="result-inner" id="resultContent">
+86	        <div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>
+87	      </div>
+88	    </section>
+89	
+90	  </div><!-- /panel-single -->
+91	
+92	  <!-- ── Team view panel ───────────────────────────────────────────────── -->
+93	  <div id="panel-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+94	
+95	    <!-- Shared calc-from + members card -->
+96	    <section class="card" aria-label="Team members">
+97	      <h2>Team members</h2>
+98	
+99	      <!-- Shared calc-from -->
+100	      <div class="form-group">
+101	        <label for="teamFromDate">Calculate from</label>
+102	        <input type="date" id="teamFromDate" aria-required="true"
+103	               aria-describedby="teamFromDate-error" min="2000-01-01" max="2100-12-31">
+104	        <div class="field-error" id="teamFromDate-error" role="alert"></div>
+105	      </div>
+106	
+107	      <!-- Dynamic member rows -->
+108	      <div id="teamMemberList" style="margin-top:16px"></div>
+109	
+110	      <button class="btn-add" id="addMemberBtn" type="button">+ Add member</button>
+111	      <p class="team-note">Not saved — data clears on refresh.</p>
+112	    </section>
+113	
+114	    <!-- Team results card -->
+115	    <section class="card" id="teamResults" aria-label="Team pace" aria-live="polite" aria-atomic="true">
+116	      <h2>Team pace</h2>
+117	      <div id="teamResultContent">
+118	        <div class="result-hint">Add team members to see who&rsquo;s at risk.</div>
+119	      </div>
+120	    </section>
+121	
+122	  </div><!-- /panel-team -->
+123	
+124	</main>
+125	
+126	<footer>
+127	  Renewal Runway &mdash; recertification pace calculator
+128	</footer>
+129	
+130	<script src="calc.js"></script>
+131	<script>
+132	(function () {
+133	  'use strict';
+134	
+135	  // ── Element references ──────────────────────────────────────────────────
+136	  var elRequired  = document.getElementById('required');
+137	  var elEarned    = document.getElementById('earned');
+138	  var elEndDate   = document.getElementById('endDate');
+139	  var elFromDate  = document.getElementById('fromDate');
+140	  var elPreset    = document.getElementById('preset');
+141	  var elReset     = document.getElementById('resetBtn');
+142	  var elContent   = document.getElementById('resultContent');
+143	  var elResults   = document.getElementById('results');
+144	
+145	  var elErrReq    = document.getElementById('required-error');
+146	  var elErrEarn   = document.getElementById('earned-error');
+147	  var elErrEnd    = document.getElementById('endDate-error');
+148	  var elErrFrom   = document.getElementById('fromDate-error');
+149	
+150	  // ── Helpers ─────────────────────────────────────────────────────────────
+151	
+152	  function todayISO() {
+153	    var d = new Date();
+154	    var y = d.getFullYear();
+155	    var m = String(d.getMonth() + 1).padStart(2, '0');
+156	    var day = String(d.getDate()).padStart(2, '0');
+157	    return y + '-' + m + '-' + day;
+158	  }
+159	
+160	  function setError(el, errEl, msg) {
+161	    if (msg) {
+162	      el.classList.add('invalid');
+163	      errEl.textContent = msg;
+164	      errEl.classList.add('visible');
+165	    } else {
+166	      el.classList.remove('invalid');
+167	      errEl.textContent = '';
+168	      errEl.classList.remove('visible');
+169	    }
+170	  }
+171	
+172	  // ── Render ───────────────────────────────────────────────────────────────
+173	
+174	  function render() {
+175	    var reqVal  = elRequired.value;
+176	    var earnVal = elEarned.value;
+177	    var endVal  = elEndDate.value;
+178	    var fromVal = elFromDate.value;
+179	
+180	    var r = calculate(reqVal, earnVal, endVal, fromVal);
+181	
+182	    // Show/clear field errors
+183	    setError(elRequired, elErrReq,   r.errors.required);
+184	    setError(elEarned,   elErrEarn,  r.errors.earned);
+185	    setError(elEndDate,  elErrEnd,   r.errors.endDate);
+186	    setError(elFromDate, elErrFrom,  r.errors.fromDate);
+187	
+188	    // Update results card border to reflect severity
+189	    elResults.className = 'card';
+190	    if (r.isAtRisk) elResults.classList.add('results--atrisk');
+191	    else if (r.state === 'urgency') elResults.classList.add('results--urgency');
+192	
+193	    var html = '';
+194	
+195	    if (r.state === 'empty') {
+196	      html = '<div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>';
+197	
+198	    } else if (r.state === 'error') {
+199	      html = '<div class="result-hint">Fix the highlighted field to see your pace.</div>';
+200	
+201	    } else if (r.state === 'met') {
+202	      var msg;
+203	      if (r.extraDisplay !== null) {
+204	        msg = 'Requirement met. You have ' + r.earnedDisplay + ' of ' + r.requiredDisplay
+205	              + ' credits (' + r.extraDisplay + ' extra).';
+206	      } else {
+207	        msg = 'Requirement met. You have ' + r.earnedDisplay + ' of ' + r.requiredDisplay + ' credits.';
+208	      }
+209	      html = '<div class="result-met">' + esc(msg) + '</div>';
+210	
+211	    } else if (r.state === 'passed') {
+212	      var daysAgoStr = r.daysAgo === 1 ? '1 day ago' : r.daysAgo + ' days ago';
+213	      html = '<div class="result-passed">Cycle ended on ' + esc(r.endDateDisplay)
+214	             + ' (' + daysAgoStr + ').</div>';
+215	
+216	    } else if (r.state === 'urgency') {
+217	      var warnHtml = r.isAtRisk
+218	        ? '<div class="banner-atrisk">At risk: this pace exceeds 40 credits per week.</div>'
+219	        : '';
+220	      var mainMsg;
+221	      if (r.daysLeft === 1) {
+222	        mainMsg = 'You need ' + r.remainingDisplay
+223	                  + (r.remainingDisplay === '1' ? ' credit' : ' credits') + ' today.';
+224	      } else {
+225	        mainMsg = 'You need ' + r.remainingDisplay
+226	                  + (r.remainingDisplay === '1' ? ' credit' : ' credits')
+227	                  + ' in the next ' + r.daysLeft + ' days.';
+228	      }
+229	      var remLabel = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
+230	      var dayLabel = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+231	      var urgencyClass = r.isAtRisk ? 'result-pace-wrap result-pace-wrap--atrisk' : 'result-pace-wrap result-pace-wrap--urgency';
+232	      html = warnHtml
+233	        + '<div class="' + urgencyClass + '">'
+234	        + progressBar(r.earnedUnits, r.reqUnits)
+235	        + '<div class="result-urgency-main">' + esc(mainMsg) + '</div>'
+236	        + '<div class="result-secondary">'
+237	        + '<span><strong>' + esc(remLabel) + '</strong></span>'
+238	        + '<span><strong>' + esc(dayLabel) + '</strong></span>'
+239	        + '</div></div>';
+240	
+241	    } else if (r.state === 'pace') {
+242	      var warnHtml2 = r.isAtRisk
+243	        ? '<div class="banner-atrisk">At risk: this pace exceeds 40 credits per week.</div>'
+244	        : '';
+245	      var paceLabel = r.paceDisplay === '1' ? '1 credit per week' : r.paceDisplay + ' credits per week';
+246	      var remLabel2 = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
+247	      var dayLabel2 = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+248	      var paceClass = r.isAtRisk ? 'result-pace-wrap result-pace-wrap--atrisk' : 'result-pace-wrap';
+249	      html = warnHtml2
+250	        + '<div class="' + paceClass + '">'
+251	        + progressBar(r.earnedUnits, r.reqUnits)
+252	        + '<div class="result-main">' + esc(paceLabel) + '</div>'
+253	        + '<div class="result-secondary">'
+254	        + '<span><strong>' + esc(remLabel2) + '</strong></span>'
+255	        + '<span><strong>' + esc(dayLabel2) + '</strong></span>'
+256	        + '</div></div>';
+257	    }
+258	
+259	    elContent.innerHTML = html;
+260	  }
+261	
+262	  function esc(s) {
+263	    return String(s)
+264	      .replace(/&/g, '&amp;')
+265	      .replace(/</g, '&lt;')
+266	      .replace(/>/g, '&gt;')
+267	      .replace(/"/g, '&quot;');
+268	  }
+269	
+270	  function progressBar(earnedUnits, reqUnits) {
+271	    var pct = reqUnits > 0 ? Math.min(100, Math.round(earnedUnits / reqUnits * 100)) : 0;
+272	    var label = formatCredits(earnedUnits) + ' of ' + formatCredits(reqUnits) + ' credits earned';
+273	    return '<div class="progress-label">' + esc(label) + '</div>'
+274	      + '<div class="progress-wrap" role="progressbar" aria-valuenow="' + pct
+275	      + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + esc(label) + '">'
+276	      + '<div class="progress-bar" style="width:' + pct + '%"></div>'
+277	      + '</div>';
+278	  }
+279	
+280	  // ── Preset selector ──────────────────────────────────────────────────────
+281	
+282	  var suppressPresetSwitch = false;
+283	
+284	  elPreset.addEventListener('change', function () {
+285	    var val = this.value;
+286	    if (val !== '') {
+287	      suppressPresetSwitch = true;
+288	      elRequired.value = PRESETS[val];
+289	      suppressPresetSwitch = false;
+290	    }
+291	    render();
+292	  });
+293	
+294	  elRequired.addEventListener('input', function () {
+295	    if (!suppressPresetSwitch) {
+296	      elPreset.value = '';
+297	    }
+298	    render();
+299	  });
+300	
+301	  // ── Live update on other fields ──────────────────────────────────────────
+302	
+303	  elEarned.addEventListener('input', render);
+304	  elEndDate.addEventListener('change', render);
+305	  elFromDate.addEventListener('change', render);
+306	
+307	  // ── Reset ────────────────────────────────────────────────────────────────
+308	
+309	  elReset.addEventListener('click', function () {
+310	    elPreset.value    = '';
+311	    elRequired.value  = '';
+312	    elEarned.value    = '0';
+313	    elEndDate.value   = '';
+314	    elFromDate.value  = todayISO();
+315	    render();
+316	  });
+317	
+318	  // ── Initialise ───────────────────────────────────────────────────────────
+319	
+320	  elEarned.value   = '0';
+321	  elFromDate.value = todayISO();
+322	  render();
+323	
+324	}());
+325	</script>
+326	
+327	<script>
+328	/* ── Tab switching ───────────────────────────────────────────────────────── */
+329	(function () {
+330	  'use strict';
+331	  var tabSingle  = document.getElementById('tab-single');
+332	  var tabTeam    = document.getElementById('tab-team');
+333	  var panelSingle = document.getElementById('panel-single');
+334	  var panelTeam   = document.getElementById('panel-team');
+335	
+336	  function switchTab(show) {
+337	    var isSingle = show === 'single';
+338	    tabSingle.setAttribute('aria-selected', isSingle ? 'true' : 'false');
+339	    tabTeam.setAttribute('aria-selected',   isSingle ? 'false' : 'true');
+340	    panelSingle.hidden = !isSingle;
+341	    panelTeam.hidden   = isSingle;
+342	  }
+343	
+344	  tabSingle.addEventListener('click', function () { switchTab('single'); });
+345	  tabTeam.addEventListener('click',   function () { switchTab('team'); });
+346	}());
+347	</script>
+348	
+349	<script>
+350	/* ── Team view ───────────────────────────────────────────────────────────── */
+351	(function () {
+352	  'use strict';
+353	
+354	  var MAX_MEMBERS = 20;
+355	  var memberRows  = [];   // array of { id, name, preset, required, earned, endDate }
+356	  var nextId      = 0;
+357	
+358	  var elList      = document.getElementById('teamMemberList');
+359	  var elAddBtn    = document.getElementById('addMemberBtn');
+360	  var elContent   = document.getElementById('teamResultContent');
+361	  var elFromDate  = document.getElementById('teamFromDate');
+362	  var elFromErr   = document.getElementById('teamFromDate-error');
+363	
+364	  // ── Helpers ────────────────────────────────────────────────────────────
+365	
+366	  function todayISO() {
+367	    var d = new Date();
+368	    return d.getFullYear() + '-'
+369	      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+370	      + String(d.getDate()).padStart(2, '0');
+371	  }
+372	
+373	  function esc(s) {
+374	    return String(s)
+375	      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+376	      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+377	  }
+378	
+379	  function setFieldError(el, errEl, msg) {
+380	    if (msg) {
+381	      el.classList.add('invalid'); errEl.textContent = msg; errEl.classList.add('visible');
+382	    } else {
+383	      el.classList.remove('invalid'); errEl.textContent = ''; errEl.classList.remove('visible');
+384	    }
+385	  }
+386	
+387	  function badgeClass(badge) {
+388	    var map = {
+389	      'Done': 'badge-done', 'On track': 'badge-on-track', 'Urgent': 'badge-urgent',
+390	      'At risk': 'badge-at-risk', 'Lapsed': 'badge-lapsed',
+391	      'Invalid': 'badge-invalid', 'Incomplete': 'badge-incomplete',
+392	    };
+393	    return map[badge] || 'badge-incomplete';
+394	  }
+395	
+396	  function resultLine(item) {
+397	    var r = item.result;
+398	    if (item.badge === 'Incomplete') return '';
+399	    if (item.badge === 'Invalid') {
+400	      var firstErr = r.errors.required || r.errors.earned || r.errors.endDate || r.errors.fromDate || '';
+401	      return '<div class="team-result-error">' + esc(firstErr) + '</div>';
+402	    }
+403	    if (r.state === 'met') {
+404	      var msg = 'Requirement met. ' + r.earnedDisplay + ' of ' + r.requiredDisplay + ' credits';
+405	      if (r.extraDisplay) msg += ' (' + r.extraDisplay + ' extra)';
+406	      return '<div class="team-result-line">' + esc(msg + '.') + '</div>';
+407	    }
+408	    if (r.state === 'passed') {
+409	      var dStr = r.daysAgo === 1 ? '1 day ago' : r.daysAgo + ' days ago';
+410	      return '<div class="team-result-line">' + esc('Cycle ended ' + dStr + '.') + '</div>';
+411	    }
+412	    if (r.state === 'urgency') {
+413	      var cStr = r.daysLeft === 1
+414	        ? esc(r.remainingDisplay) + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' needed today'
+415	        : esc(r.remainingDisplay) + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' in ' + r.daysLeft + ' days';
+416	      return '<div class="team-result-line">' + cStr + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left')) + '</div>';
+417	    }
+418	    // pace
+419	    return '<div class="team-result-line">'
+420	      + esc(r.paceDisplay + ' credit' + (r.paceDisplay === '1' ? '' : 's') + '/week')
+421	      + ' &middot; ' + esc(r.remainingDisplay + ' remaining')
+422	      + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left'))
+423	      + '</div>';
+424	  }
+425	
+426	  // ── Render results ──────────────────────────────────────────────────────
+427	
+428	  function renderResults() {
+429	    var fromVal = elFromDate.value;
+430	    var vFrom = validateFromDate(fromVal);
+431	    setFieldError(elFromDate, elFromErr, vFrom.error);
+432	
+433	    if (!vFrom.ok) {
+434	      elContent.innerHTML = '<div class="result-hint">Enter a valid calculate-from date to see the team.</div>';
+435	      return;
+436	    }
+437	
+438	    if (memberRows.length === 0) {
+439	      elContent.innerHTML = '<div class="result-hint">Add team members to see who&rsquo;s at risk.</div>';
+440	      return;
+441	    }
+442	
+443	    var rows = memberRows.map(function (m) {
+444	      return { name: m.name, required: m.required, earned: m.earned, endDate: m.endDate };
+445	    });
+446	    var ranked = rankTeam(rows, fromVal);
+447	
+448	    var valid  = ranked.filter(function (r) { return r.badge !== 'Incomplete' && r.badge !== 'Invalid'; });
+449	    var danger = ranked.filter(function (r) { return r.badge === 'At risk' || r.badge === 'Lapsed'; });
+450	
+451	    var summary;
+452	    if (valid.length === 0) {
+453	      summary = 'Add team members to see who\'s at risk.';
+454	    } else {
+455	      summary = danger.length + ' of ' + valid.length + ' at risk or lapsed';
+456	    }
+457	
+458	    var html = '<div class="team-summary">' + esc(summary) + '</div>';
+459	    ranked.forEach(function (item) {
+460	      html += '<div class="team-result-row">'
+461	        + '<span class="team-badge ' + badgeClass(item.badge) + '">' + esc(item.badge) + '</span>'
+462	        + '<div class="team-result-body">'
+463	        + '<div class="team-result-name">' + esc(item.displayName) + '</div>'
+464	        + resultLine(item)
+465	        + '</div></div>';
+466	    });
+467	
+468	    elContent.innerHTML = html;
+469	  }
+470	
+471	  // ── Build a member row element ──────────────────────────────────────────
+472	
+473	  function buildRowEl(m, index) {
+474	    var div = document.createElement('div');
+475	    div.className = 'team-row';
+476	    div.dataset.id = m.id;
+477	
+478	    var presetOptions = ''
+479	      + '<option value="">Custom</option>'
+480	      + '<option value="shrm">SHRM-CP / SHRM-SCP</option>'
+481	      + '<option value="hrci">HRCI PHR / SPHR</option>'
+482	      + '<option value="pmp">PMI PMP</option>'
+483	      + '<option value="capm">PMI CAPM</option>';
+484	
+485	    var nameId     = 'tm-name-'    + m.id;
+486	    var presetId   = 'tm-preset-'  + m.id;
+487	    var requiredId = 'tm-req-'     + m.id;
+488	    var earnedId   = 'tm-earn-'    + m.id;
+489	    var endDateId  = 'tm-end-'     + m.id;
+490	
+491	    div.innerHTML = ''
+492	      + '<div class="team-row-fields">'
+493	      + '  <div class="form-group"><label for="' + nameId + '">Name <span class="optional">(optional)</span></label>'
+494	      + '    <input type="text" id="' + nameId + '" placeholder="Person ' + (index + 1) + '" autocomplete="off"></div>'
+495	      + '  <div class="form-group"><label for="' + presetId + '">Preset</label>'
+496	      + '    <select id="' + presetId + '">' + presetOptions + '</select></div>'
+497	      + '  <div class="form-group"><label for="' + requiredId + '">Credits required</label>'
+498	      + '    <input type="text" id="' + requiredId + '" inputmode="decimal" placeholder="e.g. 60" autocomplete="off"></div>'
+499	      + '  <div class="form-group"><label for="' + earnedId + '">Credits earned</label>'
+500	      + '    <input type="text" id="' + earnedId + '" inputmode="decimal" placeholder="0" autocomplete="off"></div>'
+501	      + '  <div class="form-group"><label for="' + endDateId + '">Cycle end date</label>'
+502	      + '    <input type="date" id="' + endDateId + '" min="2000-01-01" max="2100-12-31"></div>'
+503	      + '</div>'
+504	      + '<button class="btn-remove" type="button" aria-label="Remove member">&times;</button>';
+505	
+506	    var nameEl    = div.querySelector('#' + nameId);
+507	    var presetEl  = div.querySelector('#' + presetId);
+508	    var reqEl     = div.querySelector('#' + requiredId);
+509	    var earnEl    = div.querySelector('#' + earnedId);
+510	    var endEl     = div.querySelector('#' + endDateId);
+511	    var removeBtn = div.querySelector('.btn-remove');
+512	
+513	    // Restore saved state into DOM (fixes blank inputs after rebuildList)
+514	    nameEl.value   = m.name     || '';
+515	    presetEl.value = m.preset   || '';
+516	    reqEl.value    = m.required || '';
+517	    earnEl.value   = m.earned   || '';
+518	    endEl.value    = m.endDate  || '';
+519	
+520	    var suppressPreset = false;
+521	
+522	    function sync() {
+523	      m.name     = nameEl.value;
+524	      m.required = reqEl.value;
+525	      m.earned   = earnEl.value;
+526	      m.endDate  = endEl.value;
+527	      renderResults();
+528	    }
+529	
+530	    presetEl.addEventListener('change', function () {
+531	      if (this.value !== '') {
+532	        suppressPreset = true;
+533	        reqEl.value = PRESETS[this.value];
+534	        suppressPreset = false;
+535	      }
+536	      m.preset = presetEl.value;
+537	      sync();
+538	    });
+539	
+540	    reqEl.addEventListener('input', function () {
+541	      if (!suppressPreset) {
+542	        presetEl.value = '';
+543	        m.preset = '';
+544	      }
+545	      sync();
+546	    });
+547	
+548	    nameEl.addEventListener('input', sync);
+549	    earnEl.addEventListener('input', sync);
+550	    endEl.addEventListener('change', sync);
+551	
+552	    removeBtn.addEventListener('click', function () {
+553	      memberRows = memberRows.filter(function (r) { return r.id !== m.id; });
+554	      rebuildList();
+555	      renderResults();
+556	    });
+557	
+558	    return div;
+559	  }
+560	
+561	  // ── Rebuild the full member list DOM ────────────────────────────────────
+562	
+563	  function rebuildList() {
+564	    elList.innerHTML = '';
+565	    memberRows.forEach(function (m, i) {
+566	      elList.appendChild(buildRowEl(m, i));
+567	    });
+568	    elAddBtn.disabled = memberRows.length >= MAX_MEMBERS;
+569	  }
+570	
+571	  // ── Add member ──────────────────────────────────────────────────────────
+572	
+573	  elAddBtn.addEventListener('click', function () {
+574	    if (memberRows.length >= MAX_MEMBERS) return;
+575	    var m = { id: nextId++, name: '', preset: '', required: '', earned: '', endDate: '' };
+576	    memberRows.push(m);
+577	    rebuildList();
+578	    // focus the name field of the new row
+579	    var last = elList.lastElementChild;
+580	    if (last) {
+581	      var nameInput = last.querySelector('input[type="text"]');
+582	      if (nameInput) nameInput.focus();
+583	    }
+584	    renderResults();
+585	  });
+586	
+587	  // ── Shared calc-from date ───────────────────────────────────────────────
+588	
+589	  elFromDate.addEventListener('change', renderResults);
+590	
+591	  // ── Initialise ──────────────────────────────────────────────────────────
+592	
+593	  elFromDate.value = todayISO();
+594	
+595	}());
+596	</script>
+597	
+598	</body>
+599	</html>
+600	
+````
+
+</details>
+
+
+**Claude:**
+
+Now let me read the user-stories.md to understand the docs structure:
+
+<details><summary>🔧 Tool call: <code>Read</code></summary>
+
+````
+{
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\docs\\user-stories.md"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+1	# Renewal Runway — User Stories
+2	
+3	## Calculation Rules
+4	
+5	These rules govern every result the app produces. All stories are written against them.
+6	
+7	**Credit precision**  
+8	Credits are stored as integer hundredths (1.5 credits = 150 units). All arithmetic uses integers, eliminating floating-point errors.
+9	
+10	**Credits remaining**  
+11	`remaining = max(required − earned, 0)`. When earned ≥ required the result is 0 for pace purposes; the panel shows the requirement-met state instead.
+12	
+13	**Days left**  
+14	`days_left = end_date − calculate_from_date + 1` (both dates inclusive).  
+15	Example: Dec 29 → Dec 31 = 3 days. This reflects that credits can be earned on the last day of the cycle.
+16	
+17	**Weekly pace**  
+18	`pace = remaining ÷ days_left × 7`, rounded **up** to 2 decimal places. Rounding up ensures that sustaining the shown pace always finishes on time.
+19	
+20	**Date display**  
+21	Calendar dates only; no time-of-day or time-zone handling. Shown as "Dec 31, 2027".
+22	
+23	**Number display**  
+24	Up to 2 decimal places; trailing zeros dropped (4.00 → 4, 3.90 → 3.9); thousands separators applied. Exactly 1 uses the singular form ("1 credit", "1 day"); all other quantities use the plural.
+25	
+26	**Live updates**  
+27	Results update as fields change. There is no separate calculate button.
+28	
+29	**Panel display**  
+30	In the Urgency and Weekly pace states, the panel shows four items below any at-risk warning: a progress bar labelled "X of Y credits earned", the main result line, then "X credits remaining" (or "1 credit remaining"), then "X days left" (or "1 day left"). The progress bar fill is capped at 100%. These items are not shown in the Requirement met or Deadline passed states.
+31	
+32	The results card is colour-coded by severity: blue border for normal weekly pace; amber border and amber main text for urgency (< 7 days, not at risk); red border, red banner, and red main text for at-risk (pace > 40); green for requirement met; grey for deadline passed. Colour is never the only signal — the text and layout communicate each state independently.
+33	
+34	**Certification presets**  
+35	Selecting a preset fills credits required. Manually editing credits required switches the selector to Custom.
+36	
+37	| Preset | Credits required |
+38	|---|---|
+39	| SHRM-CP / SHRM-SCP | 60 |
+40	| HRCI PHR / SPHR | 60 |
+41	| PMI PMP | 60 |
+42	| PMI CAPM | 15 |
+43	| Custom | (user-entered) |
+44	
+45	Presets cover totals only; category or activity-type breakdowns are out of scope.
+46	
+47	**Field limits**
+48	
+49	| Field | Valid range |
+50	|---|---|
+51	| Credits required | > 0 and ≤ 500, up to 2 decimal places |
+52	| Credits earned | ≥ 0 and ≤ 1,000, up to 2 decimal places |
+53	| Cycle end date | Valid calendar date, year 2000–2100 |
+54	| Calculate-from date | Valid calendar date, year 2000–2100 |
+55	
+56	**Default state (on load and after reset)**  
+57	Preset: Custom. Credits required: empty. Credits earned: 0. Cycle end date: empty. Calculate-from date: current date. No result is shown until credits required and cycle end date are both filled with valid values.
+58	
+59	**UI text — error messages**
+60	
+61	| Condition | Message |
+62	|---|---|
+63	| Credits required empty | (no error; result not shown until a valid value is entered) |
+64	| Credits required = 0 or negative | "Credits required must be greater than 0." |
+65	| Credits required > 500 | "Credits required cannot exceed 500." |
+66	| Credits required non-numeric | "Credits required must be a number." |
+67	| Credits required more than 2 decimal places | "Credits required cannot have more than 2 decimal places." |
+68	| Credits earned negative | "Credits earned cannot be negative." |
+69	| Credits earned > 1,000 | "Credits earned cannot exceed 1,000." |
+70	| Credits earned non-numeric | "Credits earned must be a number." |
+71	| Credits earned more than 2 decimal places | "Credits earned cannot have more than 2 decimal places." |
+72	| Cycle end date empty | (no error; result not shown until a valid value is entered) |
+73	| Cycle end date is a calendar-impossible date (e.g. Feb 30) | "Cycle end date is not a valid calendar date." |
+74	| Cycle end date year < 2000 or > 2100 | "Cycle end date must be between 2000 and 2100." |
+75	| Calculate-from date cleared | "Calculate-from date is required." |
+76	
+77	**UI text — result states**
+78	
+79	| State | Panel content |
+80	|---|---|
+81	| Empty (credits required or end date not yet filled) | "Enter credits required and your cycle end date to see your pace." |
+82	| Error (one or more fields are invalid) | "Fix the highlighted field to see your pace." |
+83	| Requirement met (earned > required) | "Requirement met. You have {earned} of {required} credits ({extra} extra)." |
+84	| Requirement met (earned = required) | "Requirement met. You have {earned} of {required} credits." |
+85	| Deadline passed | "Cycle ended on {date} ({N} day[s] ago)." |
+86	| Urgency, days > 1 | "You need {remaining} credits in the next {N} days." |
+87	| Urgency, days = 1 | "You need {remaining} credits today." |
+88	| Weekly pace | "{pace} credits per week" |
+89	| At-risk warning (above state 3 or 4) | "At risk: this pace exceeds 40 credits per week." |
+90	
+91	---
+92	
+93	## Results panel — priority order
+94	
+95	When credits required and cycle end date are both valid, the panel shows exactly one of these states, checked in this order:
+96	
+97	1. **Requirement met** — earned ≥ required. Shown even if the deadline has passed.
+98	2. **Deadline passed** — cycle end date is before the calculate-from date and requirement not met.
+99	3. **Urgency** — days left < 7 and requirement not met.
+100	4. **Weekly pace** — all other cases.
+101	
+102	An at-risk warning appears above the result for states 3 and 4 when the weekly pace exceeds 40. A pace of exactly 40 is not at risk.
+103	
+104	---
+105	
+106	Each story below names the job it serves. Status reflects what the app does today. Implemented stories are listed first.
+107	
+108	---
+109	
+110	## S-1 · Enter certification details and see weekly pace
+111	**Role:** Certified Professional | **Job:** J-1 | **Status:** Implemented
+112	
+113	As a Certified Professional, I want to enter my total credits required, credits already earned, and certification cycle end date and see the weekly pace I need from today, so that I can plan how many hours of training to schedule each week.
+114	
+115	**Acceptance criteria**
+116	
+117	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days inclusive); required = 60; earned = 20, then the panel shows **"4 credits per week"**, **"40 credits remaining"**, **"70 days left"** (remaining 40 ÷ 70 × 7 = 4.0, trailing zero dropped).
+118	- Given calc-from = Jan 1, 2027; end = Mar 14, 2027 (73 days inclusive); required = 60; earned = 20, then the panel shows **"3.84 credits per week"**, **"40 credits remaining"**, **"73 days left"** (40 ÷ 73 × 7 = 3.836…, rounded up to 3.84).
+119	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days); required = 60; earned = 59.99, then the panel shows **"0.01 credits per week"**, **"0.01 credits remaining"**, **"70 days left"** (remaining 0.01 ÷ 70 × 7 = 0.001…, rounded up to 0.01).
+120	- Given calc-from = Jan 1, 2027; end = Dec 30, 2027 (364 days); required = 500; earned = 0, then the panel shows **"9.62 credits per week"**, **"500 credits remaining"**, **"364 days left"** (500 ÷ 364 × 7 = 9.615…, rounded up), confirming the app handles maximum field values without error.
+121	- Given credits required = 500; calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days); earned = 0, then the at-risk warning appears and the panel shows **"50 credits per week"**, **"500 credits remaining"**, **"70 days left"** (500 ÷ 70 × 7 = 50.0; 50 > 40).
+122	- Given credits earned is left empty; calc-from = Jan 1, 2027; end = Mar 11, 2027; required = 60, then earned is treated as 0 and the panel shows **"6 credits per week"**, **"60 credits remaining"**, **"70 days left"** (60 ÷ 70 × 7 = 6.0).
+123	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027; required = 60; earned = 20 (result showing), when earned changes to 30, then the result updates immediately to **"3 credits per week"**, **"30 credits remaining"**, **"70 days left"** (remaining 30 ÷ 70 × 7 = 3.0).
+124	- Given credits required is empty (and no other errors are present), then the panel shows **"Enter credits required and your cycle end date to see your pace."** — no error, no result.
+125	
+126	---
+127	
+128	## S-2 · See an urgency message when fewer than 7 days remain
+129	**Role:** Certified Professional | **Job:** J-2 | **Status:** Implemented
+130	
+131	As a Certified Professional, I want to see the credits I still need stated in days rather than weeks when my deadline is very close, so that I can judge immediately whether catching up is still feasible.
+132	
+133	**Acceptance criteria**
+134	
+135	- Given calc-from = Dec 26, 2027; end = Dec 31, 2027 (6 days inclusive); required = 60; earned = 50, then the panel shows **"You need 10 credits in the next 6 days."**, **"10 credits remaining"**, **"6 days left"**, with no at-risk warning (equivalent pace 10 ÷ 6 × 7 = 11.67, which is ≤ 40).
+136	- Given calc-from = Dec 30, 2027; end = Dec 31, 2027 (2 days inclusive); required = 60; earned = 50, then the panel shows **"You need 10 credits in the next 2 days."**, **"10 credits remaining"**, **"2 days left"**, with no at-risk warning (equivalent pace 10 ÷ 2 × 7 = 35, which is ≤ 40).
+137	- Given calc-from = Dec 31, 2027; end = Dec 31, 2027 (1 day inclusive); required = 60; earned = 50, then the at-risk warning appears and the panel shows **"You need 10 credits today."**, **"10 credits remaining"**, **"1 day left"** (equivalent pace 10 ÷ 1 × 7 = 70, which is > 40).
+138	- Given calc-from = Dec 25, 2027; end = Dec 31, 2027 (7 days inclusive); required = 60; earned = 50, then the panel shows the weekly pace **"10 credits per week"**, **"10 credits remaining"**, **"7 days left"** (10 ÷ 7 × 7 = 10.0) — urgency is not triggered at exactly 7 days.
+139	
+140	---
+141	
+142	## S-3 · Confirm that the credit requirement is met
+143	**Role:** Certified Professional | **Job:** J-3 | **Status:** Implemented
+144	
+145	As a Certified Professional, I want to see a clear confirmation when my earned credits meet or exceed the total required, so that I can submit my renewal without second-guessing the numbers.
+146	
+147	**Acceptance criteria**
+148	
+149	- Given calc-from = Jan 1, 2027; end = Dec 31, 2027; required = 60; earned = 60, then the panel shows **"Requirement met. You have 60 of 60 credits."**
+150	- Given calc-from = Jan 1, 2027; end = Dec 31, 2027; required = 60; earned = 65, then the panel shows **"Requirement met. You have 65 of 60 credits (5 extra)."**
+151	- Given calc-from = Jan 1, 2028; end = Dec 31, 2027; required = 60; earned = 60 (deadline already passed), then the panel shows the requirement-met message — not the deadline-passed message.
+152	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days); required = 60; earned = 59.99, then the requirement-met message is **not** shown and the panel shows **"0.01 credits per week"** instead (59.99 < 60).
+153	
+154	---
+155	
+156	## S-4 · Know when the cycle has ended without the requirement being met
+157	**Role:** Certified Professional | **Job:** J-2 | **Status:** Implemented
+158	
+159	As a Certified Professional, I want to know clearly when my certification cycle has ended without my having met the credit requirement, so that I understand my situation and can decide what to do next.
+160	
+161	**Acceptance criteria**
+162	
+163	- Given calc-from = Jan 1, 2028; end = Dec 31, 2027; required = 60; earned = 50, then the panel shows **"Cycle ended on Dec 31, 2027 (1 day ago)."** with no pace shown (Jan 1, 2028 − Dec 31, 2027 = 1 day).
+164	- Given calc-from = Jan 31, 2028; end = Dec 31, 2027; required = 60; earned = 50, then the panel shows **"Cycle ended on Dec 31, 2027 (31 days ago)."**
+165	- Given calc-from = Jan 1, 2028; end = Dec 31, 2027; required = 60; earned = 60, then the requirement-met message is shown — not the deadline-passed message.
+166	
+167	---
+168	
+169	## S-5 · See an at-risk warning when the required pace is unsustainable
+170	**Role:** L&D Manager | **Job:** J-4 | **Status:** Implemented
+171	
+172	As an L&D Manager, I want to see a prominent at-risk warning when the credits-per-week pace exceeds 40, so that I can immediately identify a team member who needs intervention before it is too late.
+173	
+174	**Acceptance criteria**
+175	
+176	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days); required = 500; earned = 100, then the panel shows **"40 credits per week"**, **"400 credits remaining"**, **"70 days left"** with **no at-risk warning** (remaining 400 ÷ 70 × 7 = 40.0; exactly 40 is not at risk).
+177	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027 (70 days); required = 500; earned = 99, then the **at-risk warning "At risk: this pace exceeds 40 credits per week."** appears above **"40.1 credits per week"**, **"401 credits remaining"**, **"70 days left"** (remaining 401 ÷ 70 × 7 = 40.1).
+178	- Given calc-from = Dec 31, 2027; end = Dec 31, 2027 (1 day); required = 60; earned = 50, then the **at-risk warning** appears above **"You need 10 credits today."**, **"10 credits remaining"**, **"1 day left"** (equivalent pace 10 ÷ 1 × 7 = 70).
+179	- Given calc-from = Jan 1, 2027; end = Dec 31, 2027; required = 60; earned = 60, then no at-risk warning appears (requirement already met).
+180	- Given calc-from = Jan 31, 2028; end = Dec 31, 2027; required = 60; earned = 50, then no at-risk warning appears (deadline-passed state).
+181	
+182	---
+183	
+184	## S-6 · Set a future calculate-from date to model a later start
+185	**Role:** L&D Manager | **Job:** J-5 | **Status:** Implemented
+186	
+187	As an L&D Manager, I want to set the calculate-from date to a future date, so that I can model the pace a team member would need if their dedicated training time started next quarter and decide where to commit budget before the quarter begins.
+188	
+189	**Acceptance criteria**
+190	
+191	- Given calc-from = Dec 1, 2027; end = Jan 9, 2028 (40 days inclusive); required = 60; earned = 20, then the panel shows **"7 credits per week"**, **"40 credits remaining"**, **"40 days left"** (40 ÷ 40 × 7 = 7.0) — this is the reference result showing calculate-from affects days_left.
+192	- Given calc-from = Apr 1, 2027; end = Jun 29, 2027 (90 days inclusive); required = 60; earned = 24, then the panel shows **"2.8 credits per week"**, **"36 credits remaining"**, **"90 days left"** (remaining 36 ÷ 90 × 7 = 2.8). With calc-from = Jan 1, 2027 instead (180 days inclusive), the same end date and credits yield **"1.4 credits per week"**, **"36 credits remaining"**, **"180 days left"** (36 ÷ 180 × 7 = 1.4), showing how a later start doubles the required pace.
+193	- Given calc-from = Jan 1, 2028; end = Dec 31, 2027; required = 60; earned = 50, then the deadline-passed state is shown — a calculate-from date after the cycle end is valid input, not an error.
+194	- Given calc-from = Feb 28, 2028; end = Mar 1, 2028; required = 60; earned = 57, then the panel shows **"You need 3 credits in the next 3 days."**, **"3 credits remaining"**, **"3 days left"** (Feb 28, Feb 29, Mar 1 = 3 days inclusive — 2028 is a leap year). With calc-from = Feb 28, 2027 and end = Mar 1, 2027 instead, the panel shows **"You need 3 credits in the next 2 days."**, **"3 credits remaining"**, **"2 days left"** (Feb 28, Mar 1 = 2 days — 2027 has no Feb 29), confirming that Feb 29 is counted when it exists.
+195	
+196	---
+197	
+198	## S-7 · Input validation
+199	**Role:** Certified Professional | **Job:** J-1 | **Status:** Implemented
+200	
+201	As a Certified Professional, I want the app to flag invalid entries immediately with a clear message, so that I am never shown a result based on nonsense inputs and I know exactly what to fix.
+202	
+203	**Acceptance criteria**
+204	
+205	- Given credits required = 0, then the error **"Credits required must be greater than 0."** appears and no result is shown.
+206	- Given credits required = 501, then the error **"Credits required cannot exceed 500."** appears and no result is shown.
+207	- Given credits required = "abc" (non-numeric), then the error **"Credits required must be a number."** appears and no result is shown.
+208	- Given credits required = 60.555, then the error **"Credits required cannot have more than 2 decimal places."** appears and no result is shown.
+209	- Given credits earned = −1, then the error **"Credits earned cannot be negative."** appears and no result is shown.
+210	- Given credits earned = 1,001, then the error **"Credits earned cannot exceed 1,000."** appears and no result is shown.
+211	- Given credits earned = "abc" (non-numeric), then the error **"Credits earned must be a number."** appears and no result is shown.
+212	- Given credits earned = 60.555, then the error **"Credits earned cannot have more than 2 decimal places."** appears and no result is shown.
+213	- Given cycle end date year = 1999, then the error **"Cycle end date must be between 2000 and 2100."** appears and no result is shown.
+214	- Given cycle end date year = 2101, then the error **"Cycle end date must be between 2000 and 2100."** appears and no result is shown.
+215	- Given the calculate-from date is cleared, then the error **"Calculate-from date is required."** appears and no result is shown.
+216	- Given cycle end date is empty and credits required = 60 and calc-from = Jan 1, 2027, then no error appears for the end date field and no result is shown.
+217	- Given credits required = 501 (error showing), when credits required is corrected to 60 and end = Mar 11, 2027 and calc-from = Jan 1, 2027 and earned = 20, then the error clears and **"4 credits per week"** appears.
+218	- Given calc-from = Jan 1, 2027; end = Mar 11, 2027; required = 60; earned = 20 (result "4 credits per week" is showing), when cycle end date is cleared, then the result disappears immediately and no error is shown for the end date field.
+219	
+220	---
+221	
+222	## S-8 · Select a certification preset to fill credits required
+223	**Role:** Certified Professional | **Job:** J-1 | **Status:** Implemented
+224	
+225	As a Certified Professional, I want to pick my credential from a list and have the total credits required filled in automatically, so that I do not have to look up the number for my specific certification.
+226	
+227	**Acceptance criteria**
+228	
+229	- Given I select SHRM-CP / SHRM-SCP, then credits required is set to 60.
+230	- Given I select PMI CAPM, then credits required is set to 15.
+231	- Given I select a preset and then manually edit credits required, then the selector switches to Custom.
+232	- Given I select a preset, manually edit credits required, and then select the same preset again, then credits required returns to the preset value.
+233	
+234	---
+235	
+236	## S-9 · Reset all fields to the default state
+237	**Role:** Certified Professional | **Job:** J-1 | **Status:** Implemented
+238	
+239	As a Certified Professional, I want to clear all inputs and return to the starting state, so that I can run a fresh calculation without reloading the page.
+240	
+241	**Acceptance criteria**
+242	
+243	- Given any fields have been changed, when I activate reset, then credits required is cleared, credits earned returns to 0, cycle end date is cleared, calculate-from date returns to the current date (read at reset time, not page-load time), and the preset selector returns to Custom.
+244	- Given a result or error is currently shown, when I activate reset, then it is cleared immediately and no result is shown.
+245	
+246	---
+247	
+248	## S-10 · Compare renewal status across multiple team members
+249	**Role:** L&D Manager | **Job:** J-4 | **Status:** Implemented
+250	
+251	As an L&D Manager, I want to enter details for several team members in one view and see them ranked by risk, so that I can prioritise training budget across the team without running separate calculations.
+252	
+253	**Acceptance criteria**
+254	
+255	**Ranking order**
+256	- Given calc-from = Jan 1, 2027 and five members — Alice (req 60, earned 60, end Mar 11 2027), Bob (req 60, earned 10, end Dec 20 2026), Carol (req 60, earned 50, end Jan 5 2027), Dave (req 60, earned 20, end Mar 11 2027), Eve (req 500, earned 0, end Mar 11 2027) — when the team list is shown, then the rank order is **Bob → Eve → Carol → Dave → Alice** with badges **Lapsed → At risk → Urgent → On track → Done**.
+257	
+258	**Badge definitions**
+259	
+260	| `calculate()` result | Badge |
+261	|---|---|
+262	| `state === 'met'` | Done |
+263	| `state === 'passed'` | Lapsed |
+264	| (`state === 'urgency'` or `state === 'pace'`) and `isAtRisk` | At risk |
+265	| `state === 'urgency'` and not `isAtRisk` | Urgent |
+266	| `state === 'pace'` and not `isAtRisk` | On track |
+267	| `state === 'error'` | Invalid |
+268	| `state === 'empty'` | Incomplete |
+269	
+270	**Tie-breaks**
+271	- Given calc-from = Jan 1, 2027 and two At-risk members — Frank (req 500, earned 0, end Mar 11 2027, pace 50/week) and Grace (req 430, earned 0, end Mar 11 2027, pace 43/week) — then **Frank appears before Grace** (highest pace first).
+272	- Given calc-from = Jan 1, 2027 and two Urgent members — Hina (req 60, earned 47.5, end Jan 5 2027, pace 17.5/week) and Ivan (req 60, earned 55, end Jan 5 2027, pace 7/week) — then **Hina appears before Ivan** (highest pace first).
+273	- Given calc-from = Jan 1, 2027 and two On-track members — Jana (req 60, earned 20, end Feb 8 2027, pace 7.18/week) and Karl (req 60, earned 48, end Mar 11 2027, pace 1.2/week) — then **Jana appears before Karl** (highest pace first).
+274	- Given calc-from = Jan 1, 2027 and two Lapsed members — Leo (req 60, earned 10, end Dec 22 2026, 10 days ago) and Mia (req 60, earned 10, end Dec 27 2026, 5 days ago) — then **Leo appears before Mia** (most days ago first).
+275	- Given two Done members entered in order Nora then Oscar with identical credits and dates, then **Nora appears before Oscar** (entry order preserved for exact ties across all badge groups).
+276	
+277	**Incomplete and Invalid rows**
+278	- Given a row with no required credits or end date entered (fields blank), then its badge is **Incomplete**, it appears at the bottom of the list, and no error message is shown for that row.
+279	- Given a row with credits required = "abc", then its badge is **Invalid**, the first field error is shown, and it appears above Incomplete rows but below all result rows.
+280	- Given three valid rows plus one Invalid row and one Incomplete row, then the order is: three result rows (ranked by status) → Invalid → Incomplete.
+281	
+282	**Summary line**
+283	- Given five valid members — Bob (Lapsed), Eve (At risk), Carol (Urgent), Dave (On track), Alice (Done) — then the summary reads **"2 of 5 at risk or lapsed"** (Urgent is not counted).
+284	- Given no rows have results yet (all Incomplete or Invalid), then the summary reads **"Add team members to see who's at risk."**
+285	- Given two valid members plus two Incomplete rows, then the summary counts only the two valid members.
+286	
+287	**Empty name**
+288	- Given a member row with no name entered and that row is at entry position 3, then its display name is **"Person 3"** regardless of its rank position.
+289	
+290	**Live updates and limits**
+291	- Given a team member's data changes, then their position in the ranked list updates immediately.
+292	- Given 20 members are already entered, then the Add member button is disabled.
+293	- Team data is not saved between page loads; the view displays a note to that effect.
+294	
+295	---
+296	
+297	## S-11 · Track credits by required category
+298	**Role:** Certified Professional | **Job:** J-3 | **Status:** Not implemented
+299	
+300	As a Certified Professional, I want to enter my credits broken down by required category so that I can confirm I have met each category minimum, not just the overall total.
+301	
+302	**Acceptance criteria**
+303	
+304	- Given a PMP credential with Ways of Working, Power Skills, and Business Acumen minimums, when I enter credits by category, then I see whether each minimum is satisfied alongside the overall total.
+305	- Given an HRCI credential with an ethics credit requirement, when I enter my credits, then the ethics component is verified separately from the total.
+306	
+307	---
+308	
+309	## S-12 · Save inputs between visits
+310	**Role:** Certified Professional | **Job:** J-1 | **Status:** Not implemented
+311	
+312	As a Certified Professional, I want my certification details to be remembered when I return to the app, so that I do not have to re-enter them every time I check my pace.
+313	
+314	**Acceptance criteria**
+315	
+316	- Given I have entered credits required, credits earned, and a cycle end date, when I close and reopen the app, then those values are restored and the result is shown immediately.
+317	- Given I activate reset, when I close and reopen the app, then no saved values are restored and the app shows the default state.
+318	
+319	---
+320	
+321	## S-13 · See how many courses to complete each week
+322	**Role:** Certified Professional | **Job:** J-1 | **Status:** Not implemented
+323	
+324	As a Certified Professional, I want to see my weekly pace expressed as a number of courses, not just credits, so that I can turn the target into a concrete item on my calendar.
+325	
+326	**Acceptance criteria**
+327	
+328	- Given a weekly pace of 2 credits and a typical course length of 1 credit, then the result shows "2 courses per week" alongside the credit pace.
+329	- Given I can set a typical course length, when I change it, then the courses-per-week figure updates immediately.
+330	
+````
+
+</details>
+
+
+**Claude:**
+
+I have a clear picture of all 7 changes needed. Let me work through them systematically — starting with the calc.js logic fixes, then tests, then UI, then CSS, then docs.
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.js",
+  "old_string": "// Validate credits-required string. Returns { ok, error }.\nfunction validateRequired(str) {\n  if (str === null || str === undefined || String(str).trim() === '') {\n    return { ok: false, error: null }; // empty → no error, no result\n  }\n  var s = String(str).trim();\n  if (!/^-?(\\d+\\.?\\d*|\\.\\d+)$/.test(s)) {",
+  "new_string": "// Validate credits-required string. Returns { ok, error }.\nfunction validateRequired(str) {\n  if (str === null || str === undefined || String(str).trim() === '') {\n    return { ok: false, error: null }; // empty → no error, no result\n  }\n  var s = String(str).trim().replace(/,/g, ''); // strip thousands separators\n  if (!/^-?(\\d+\\.?\\d*|\\.\\d+)$/.test(s)) {"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\calc.js has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.js",
+  "old_string": "// Validate credits-earned string. Returns { ok, error }.\nfunction validateEarned(str) {\n  if (str === null || str === undefined || String(str).trim() === '') {\n    return { ok: true, error: null, units: 0 }; // empty → treat as 0\n  }\n  var s = String(str).trim();\n  if (!/^-?(\\d+\\.?\\d*|\\.\\d+)$/.test(s)) {",
+  "new_string": "// Validate credits-earned string. Returns { ok, error }.\nfunction validateEarned(str) {\n  if (str === null || str === undefined || String(str).trim() === '') {\n    return { ok: true, error: null, units: 0 }; // empty → treat as 0\n  }\n  var s = String(str).trim().replace(/,/g, ''); // strip thousands separators\n  if (!/^-?(\\d+\\.?\\d*|\\.\\d+)$/.test(s)) {"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\calc.js has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.js",
+  "old_string": "  var d = parseDate(str);\n  if (!d) {\n    return { ok: false, error: 'Calculate-from date is required.' };\n  }\n  if (d.y < 2000 || d.y > 2100) {",
+  "new_string": "  var d = parseDate(str);\n  if (!d) {\n    return { ok: false, error: 'Calculate-from date is not a valid calendar date.' };\n  }\n  if (d.y < 2000 || d.y > 2100) {"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\calc.js has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now add the 5 new tests to calc.test.js, inside the S-7 block before the closing `});`:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\calc.test.js",
+  "old_string": "  it('AC17: leading decimal \".5\" accepted as 0.5 credits required', () => {\n    const r = calculate('.5', '0', '2027-03-11', '2027-01-01');\n    assert.equal(r.state, 'pace');\n    assert.equal(r.remainingDisplay, '0.5');\n  });\n});",
+  "new_string": "  it('AC17: leading decimal \".5\" accepted as 0.5 credits required', () => {\n    const r = calculate('.5', '0', '2027-03-11', '2027-01-01');\n    assert.equal(r.state, 'pace');\n    assert.equal(r.remainingDisplay, '0.5');\n  });\n\n  it('AC18: credits earned \"1,001\" (thousands comma) → \"Credits earned cannot exceed 1,000.\" not \"must be a number\"', () => {\n    const r = calculate('60', '1,001', '2027-12-31', '2027-01-01');\n    assert.equal(r.state, 'error');\n    assert.equal(r.errors.earned, 'Credits earned cannot exceed 1,000.');\n  });\n\n  it('AC19: credits earned \"1,000\" (thousands comma) → valid, treated as 1000', () => {\n    const r = calculate('60', '1,000', '2027-12-31', '2027-01-01');\n    assert.equal(r.state, 'met'); // 1000 >= 60\n  });\n\n  it('AC20: credits required \"1,000\" (thousands comma) → \"Credits required cannot exceed 500.\" not \"must be a number\"', () => {\n    const r = calculate('1,000', '0', '2027-12-31', '2027-01-01');\n    assert.equal(r.state, 'error');\n    assert.equal(r.errors.required, 'Credits required cannot exceed 500.');\n  });\n\n  it('AC21: impossible calc-from date (Feb 30) → \"Calculate-from date is not a valid calendar date.\"', () => {\n    const r = calculate('60', '0', '2027-12-31', '2027-02-30');\n    assert.equal(r.state, 'error');\n    assert.equal(r.errors.fromDate, 'Calculate-from date is not a valid calendar date.');\n  });\n\n  it('AC22: calc-from year 1999 → \"Calculate-from date must be between 2000 and 2100.\"', () => {\n    const r = calculate('60', '0', '2027-12-31', '1999-12-31');\n    assert.equal(r.state, 'error');\n    assert.equal(r.errors.fromDate, 'Calculate-from date must be between 2000 and 2100.');\n  });\n});"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\calc.test.js has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now fix task 7 ("credits remaining") and task 6 (error display on team row inputs) in index.html:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\index.html",
+  "old_string": "    // pace\n    return '<div class=\"team-result-line\">'\n      + esc(r.paceDisplay + ' credit' + (r.paceDisplay === '1' ? '' : 's') + '/week')\n      + ' &middot; ' + esc(r.remainingDisplay + ' remaining')\n      + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left'))\n      + '</div>';",
+  "new_string": "    // pace\n    return '<div class=\"team-result-line\">'\n      + esc(r.paceDisplay + ' credit' + (r.paceDisplay === '1' ? '' : 's') + '/week')\n      + ' &middot; ' + esc(r.remainingDisplay + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' remaining')\n      + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left'))\n      + '</div>';"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\index.html has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now replace the entire `buildRowEl` function to add error divs and inline validation (task 6):
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\index.html",
+  "old_string": "  function buildRowEl(m, index) {\n    var div = document.createElement('div');\n    div.className = 'team-row';\n    div.dataset.id = m.id;\n\n    var presetOptions = ''\n      + '<option value=\"\">Custom</option>'\n      + '<option value=\"shrm\">SHRM-CP / SHRM-SCP</option>'\n      + '<option value=\"hrci\">HRCI PHR / SPHR</option>'\n      + '<option value=\"pmp\">PMI PMP</option>'\n      + '<option value=\"capm\">PMI CAPM</option>';\n\n    var nameId     = 'tm-name-'    + m.id;\n    var presetId   = 'tm-preset-'  + m.id;\n    var requiredId = 'tm-req-'     + m.id;\n    var earnedId   = 'tm-earn-'    + m.id;\n    var endDateId  = 'tm-end-'     + m.id;\n\n    div.innerHTML = ''\n      + '<div class=\"team-row-fields\">'\n      + '  <div class=\"form-group\"><label for=\"' + nameId + '\">Name <span class=\"optional\">(optional)</span></label>'\n      + '    <input type=\"text\" id=\"' + nameId + '\" placeholder=\"Person ' + (index + 1) + '\" autocomplete=\"off\"></div>'\n      + '  <div class=\"form-group\"><label for=\"' + presetId + '\">Preset</label>'\n      + '    <select id=\"' + presetId + '\">' + presetOptions + '</select></div>'\n      + '  <div class=\"form-group\"><label for=\"' + requiredId + '\">Credits required</label>'\n      + '    <input type=\"text\" id=\"' + requiredId + '\" inputmode=\"decimal\" placeholder=\"e.g. 60\" autocomplete=\"off\"></div>'\n      + '  <div class=\"form-group\"><label for=\"' + earnedId + '\">Credits earned</label>'\n      + '    <input type=\"text\" id=\"' + earnedId + '\" inputmode=\"decimal\" placeholder=\"0\" autocomplete=\"off\"></div>'\n      + '  <div class=\"form-group\"><label for=\"' + endDateId + '\">Cycle end date</label>'\n      + '    <input type=\"date\" id=\"' + endDateId + '\" min=\"2000-01-01\" max=\"2100-12-31\"></div>'\n      + '</div>'\n      + '<button class=\"btn-remove\" type=\"button\" aria-label=\"Remove member\">&times;</button>';\n\n    var nameEl    = div.querySelector('#' + nameId);\n    var presetEl  = div.querySelector('#' + presetId);\n    var reqEl     = div.querySelector('#' + requiredId);\n    var earnEl    = div.querySelector('#' + earnedId);\n    var endEl     = div.querySelector('#' + endDateId);\n    var removeBtn = div.querySelector('.btn-remove');\n\n    // Restore saved state into DOM (fixes blank inputs after rebuildList)\n    nameEl.value   = m.name     || '';\n    presetEl.value = m.preset   || '';\n    reqEl.value    = m.required || '';\n    earnEl.value   = m.earned   || '';\n    endEl.value    = m.endDate  || '';\n\n    var suppressPreset = false;\n\n    function sync() {\n      m.name     = nameEl.value;\n      m.required = reqEl.value;\n      m.earned   = earnEl.value;\n      m.endDate  = endEl.value;\n      renderResults();\n    }\n\n    presetEl.addEventListener('change', function () {\n      if (this.value !== '') {\n        suppressPreset = true;\n        reqEl.value = PRESETS[this.value];\n        suppressPreset = false;\n      }\n      m.preset = presetEl.value;\n      sync();\n    });\n\n    reqEl.addEventListener('input', function () {\n      if (!suppressPreset) {\n        presetEl.value = '';\n        m.preset = '';\n      }\n      sync();\n    });\n\n    nameEl.addEventListener('input', sync);\n    earnEl.addEventListener('input', sync);\n    endEl.addEventListener('change', sync);\n\n    removeBtn.addEventListener('click', function () {\n      memberRows = memberRows.filter(function (r) { return r.id !== m.id; });\n      rebuildList();\n      renderResults();\n    });\n\n    return div;\n  }",
+  "new_string": "  function buildRowEl(m, index) {\n    var div = document.createElement('div');\n    div.className = 'team-row';\n    div.dataset.id = m.id;\n\n    var presetOptions = ''\n      + '<option value=\"\">Custom</option>'\n      + '<option value=\"shrm\">SHRM-CP / SHRM-SCP</option>'\n      + '<option value=\"hrci\">HRCI PHR / SPHR</option>'\n      + '<option value=\"pmp\">PMI PMP</option>'\n      + '<option value=\"capm\">PMI CAPM</option>';\n\n    var nameId     = 'tm-name-'     + m.id;\n    var presetId   = 'tm-preset-'   + m.id;\n    var requiredId = 'tm-req-'      + m.id;\n    var earnedId   = 'tm-earn-'     + m.id;\n    var endDateId  = 'tm-end-'      + m.id;\n    var reqErrId   = 'tm-req-err-'  + m.id;\n    var earnErrId  = 'tm-earn-err-' + m.id;\n    var endErrId   = 'tm-end-err-'  + m.id;\n\n    div.innerHTML = ''\n      + '<div class=\"team-row-fields\">'\n      + '  <div class=\"form-group\"><label for=\"' + nameId + '\">Name <span class=\"optional\">(optional)</span></label>'\n      + '    <input type=\"text\" id=\"' + nameId + '\" placeholder=\"Person ' + (index + 1) + '\" autocomplete=\"off\"></div>'\n      + '  <div class=\"form-group\"><label for=\"' + presetId + '\">Preset</label>'\n      + '    <select id=\"' + presetId + '\">' + presetOptions + '</select></div>'\n      + '  <div class=\"form-group\"><label for=\"' + requiredId + '\">Credits required</label>'\n      + '    <input type=\"text\" id=\"' + requiredId + '\" inputmode=\"decimal\" placeholder=\"e.g. 60\" aria-describedby=\"' + reqErrId + '\" autocomplete=\"off\">'\n      + '    <div class=\"field-error\" id=\"' + reqErrId + '\" role=\"alert\"></div></div>'\n      + '  <div class=\"form-group\"><label for=\"' + earnedId + '\">Credits earned</label>'\n      + '    <input type=\"text\" id=\"' + earnedId + '\" inputmode=\"decimal\" placeholder=\"0\" aria-describedby=\"' + earnErrId + '\" autocomplete=\"off\">'\n      + '    <div class=\"field-error\" id=\"' + earnErrId + '\" role=\"alert\"></div></div>'\n      + '  <div class=\"form-group\"><label for=\"' + endDateId + '\">Cycle end date</label>'\n      + '    <input type=\"date\" id=\"' + endDateId + '\" min=\"2000-01-01\" max=\"2100-12-31\" aria-describedby=\"' + endErrId + '\">'\n      + '    <div class=\"field-error\" id=\"' + endErrId + '\" role=\"alert\"></div></div>'\n      + '</div>'\n      + '<button class=\"btn-remove\" type=\"button\" aria-label=\"Remove member\">&times;</button>';\n\n    var nameEl    = div.querySelector('#' + nameId);\n    var presetEl  = div.querySelector('#' + presetId);\n    var reqEl     = div.querySelector('#' + requiredId);\n    var earnEl    = div.querySelector('#' + earnedId);\n    var endEl     = div.querySelector('#' + endDateId);\n    var reqErrEl  = div.querySelector('#' + reqErrId);\n    var earnErrEl = div.querySelector('#' + earnErrId);\n    var endErrEl  = div.querySelector('#' + endErrId);\n    var removeBtn = div.querySelector('.btn-remove');\n\n    // Restore saved state into DOM (fixes blank inputs after rebuildList)\n    nameEl.value   = m.name     || '';\n    presetEl.value = m.preset   || '';\n    reqEl.value    = m.required || '';\n    earnEl.value   = m.earned   || '';\n    endEl.value    = m.endDate  || '';\n\n    var suppressPreset = false;\n\n    function syncErrors() {\n      setFieldError(reqEl,  reqErrEl,  validateRequired(m.required).error);\n      setFieldError(earnEl, earnErrEl, validateEarned(m.earned).error);\n      setFieldError(endEl,  endErrEl,  validateEndDate(m.endDate).error);\n    }\n\n    function sync() {\n      m.name     = nameEl.value;\n      m.required = reqEl.value;\n      m.earned   = earnEl.value;\n      m.endDate  = endEl.value;\n      syncErrors();\n      renderResults();\n    }\n\n    presetEl.addEventListener('change', function () {\n      if (this.value !== '') {\n        suppressPreset = true;\n        reqEl.value = PRESETS[this.value];\n        suppressPreset = false;\n      }\n      m.preset = presetEl.value;\n      sync();\n    });\n\n    reqEl.addEventListener('input', function () {\n      if (!suppressPreset) {\n        presetEl.value = '';\n        m.preset = '';\n      }\n      sync();\n    });\n\n    nameEl.addEventListener('input', sync);\n    earnEl.addEventListener('input', sync);\n    endEl.addEventListener('change', sync);\n\n    removeBtn.addEventListener('click', function () {\n      memberRows = memberRows.filter(function (r) { return r.id !== m.id; });\n      rebuildList();\n      renderResults();\n    });\n\n    syncErrors(); // apply errors for any restored invalid state\n\n    return div;\n  }"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\index.html has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now add the CSS for task 5 (mobile layout — results above members at ≤ 768px). I'll add `#panel-team` flex and the media query to style.css:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\style.css",
+  "old_string": "/* Mobile adjustments for team view */\n@media (max-width: 480px) {\n  .team-row-fields { grid-template-columns: 1fr; }\n  .btn-remove { margin-top: 0; }\n}",
+  "new_string": "/* Team panel: flex column so order can be reversed on mobile */\n#panel-team {\n  display: flex;\n  flex-direction: column;\n  gap: 20px;\n}\n\n/* Mobile adjustments for team view */\n@media (max-width: 480px) {\n  .team-row-fields { grid-template-columns: 1fr; }\n  .btn-remove { margin-top: 0; }\n}\n\n/* Below 768px: show results card above member list */\n@media (max-width: 768px) {\n  #panel-team {\n    flex-direction: column-reverse;\n  }\n}"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\style.css has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now update the docs — first the Panel display rule (task 4), then the error table (task 2), then S-7 ACs:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\docs\\user-stories.md",
+  "old_string": "The results card is colour-coded by severity: blue border for normal weekly pace; amber border and amber main text for urgency (< 7 days, not at risk); red border, red banner, and red main text for at-risk (pace > 40); green for requirement met; grey for deadline passed. Colour is never the only signal — the text and layout communicate each state independently.",
+  "new_string": "The results card has an amber border in the urgency state and a red border in the at-risk state. The at-risk state also shows a red warning banner and uses red text for the main result. In the urgency state the main result uses amber text. For the requirement-met state the result is shown in a green block; for the deadline-passed state it is shown in a grey block. No border change applies in the normal weekly pace state. Colour is never the only signal — the text and layout communicate each state independently."
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\docs\user-stories.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\docs\\user-stories.md",
+  "old_string": "| Calculate-from date cleared | \"Calculate-from date is required.\" |",
+  "new_string": "| Calculate-from date cleared | \"Calculate-from date is required.\" |\n| Calculate-from date is an impossible date (e.g. Feb 30) | \"Calculate-from date is not a valid calendar date.\" |\n| Calculate-from date year < 2000 or > 2100 | \"Calculate-from date must be between 2000 and 2100.\" |\n| Team view: calculate-from date not yet entered or invalid | \"Enter a valid calculate-from date to see the team.\" (team results panel hint) |"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\docs\user-stories.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now add the new S-7 ACs to user-stories.md:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\docs\\user-stories.md",
+  "old_string": "- Given the calculate-from date is cleared, then the error **\"Calculate-from date is required.\"** appears and no result is shown.\n- Given cycle end date is empty and credits required = 60 and calc-from = Jan 1, 2027, then no error appears for the end date field and no result is shown.",
+  "new_string": "- Given the calculate-from date is cleared, then the error **\"Calculate-from date is required.\"** appears and no result is shown.\n- Given the calculate-from date is an impossible date (e.g. Feb 30 2027), then the error **\"Calculate-from date is not a valid calendar date.\"** appears and no result is shown.\n- Given the calculate-from date year = 1999, then the error **\"Calculate-from date must be between 2000 and 2100.\"** appears and no result is shown.\n- Given credits earned = \"1,001\" (typed with a thousands comma), then the error **\"Credits earned cannot exceed 1,000.\"** appears (not \"Credits earned must be a number.\") and no result is shown.\n- Given credits earned = \"1,000\" (typed with a thousands comma), then no error appears and the value is treated as 1,000 credits earned.\n- Given credits required = \"1,000\" (typed with a thousands comma), then the error **\"Credits required cannot exceed 500.\"** appears (not \"Credits required must be a number.\") and no result is shown.\n- Given cycle end date is empty and credits required = 60 and calc-from = Jan 1, 2027, then no error appears for the end date field and no result is shown."
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\docs\user-stories.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Also add the team view calc-from hint to S-10's Live updates section:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\docs\\user-stories.md",
+  "old_string": "**Live updates and limits**\n- Given a team member's data changes, then their position in the ranked list updates immediately.\n- Given 20 members are already entered, then the Add member button is disabled.\n- Team data is not saved between page loads; the view displays a note to that effect.",
+  "new_string": "**Live updates and limits**\n- Given a team member's data changes, then their position in the ranked list updates immediately.\n- Given 20 members are already entered, then the Add member button is disabled.\n- Team data is not saved between page loads; the view displays a note to that effect.\n- Given the shared calculate-from date is not yet entered or is invalid, then the team results panel shows **\"Enter a valid calculate-from date to see the team.\"**"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\docs\user-stories.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now update the README test count from 69 to 74 and run the tests:
+
+<details><summary>🔧 Tool call: <code>Read</code></summary>
+
+````
+{
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\README.md",
+  "offset": 40,
+  "limit": 10
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+40	## Running the tests
+41	
+42	```
+43	node --test src/calc.test.js
+44	```
+45	
+46	69 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.
+47	
+48	---
+49	
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\README.md",
+  "old_string": "69 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.",
+  "new_string": "74 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check."
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\README.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+
+**Claude:**
+
+Now run the tests:
+
+<details><summary>🔧 Tool call: <code>Bash</code></summary>
+
+````
+{
+  "command": "cd \"c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\" && node --test src/calc.test.js 2>&1",
+  "timeout": 30000
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+▶ S-1 · Weekly pace
+  ✔ AC1: 60 req, 20 earned, 70 days → 4 credits/week, 40 remaining, 70 days left (1.1778ms)
+  ✔ AC2: 60 req, 20 earned, 73 days → 3.84 credits/week, 40 remaining, 73 days left (0.1314ms)
+  ✔ AC3: 60 req, 59.99 earned, 70 days → 0.01 credits/week, 0.01 remaining, 70 days left (0.112ms)
+  ✔ AC4: 500 req, 0 earned, 364 days → 9.62 credits/week, 500 remaining, 364 days left (0.0922ms)
+  ✔ AC5: 500 req, 0 earned, 70 days → at-risk + 50 credits/week, 500 remaining, 70 days left (0.1304ms)
+  ✔ AC6: empty earned treated as 0 → 6 credits/week, 60 remaining, 70 days left (0.0878ms)
+  ✔ AC7: live update — earned 20→30 → 3 credits/week, 30 remaining, 70 days left (0.0795ms)
+  ✔ AC8: empty state shown when credits required is empty (0.0791ms)
+✔ S-1 · Weekly pace (3.2286ms)
+▶ S-2 · Urgency
+  ✔ AC1: 6 days left, 10 remaining → "You need 10 credits in the next 6 days.", no at-risk (0.1515ms)
+  ✔ AC2: 2 days left, 10 remaining → "You need 10 credits in the next 2 days.", no at-risk (0.1043ms)
+  ✔ AC3: 1 day left, 10 remaining → "You need 10 credits today.", at-risk (pace=70) (0.0646ms)
+  ✔ AC4: exactly 7 days left → weekly pace state, not urgency (0.0589ms)
+✔ S-2 · Urgency (0.5391ms)
+▶ S-3 · Requirement met
+  ✔ AC1: earned = required → "Requirement met. You have 60 of 60 credits." (0.0657ms)
+  ✔ AC2: earned > required → shows extra credits (0.0436ms)
+  ✔ AC3: earned = required AND deadline passed → requirement-met, not deadline-passed (0.0406ms)
+  ✔ AC4: earned = 59.99 < 60 → NOT met, shows weekly pace (0.042ms)
+✔ S-3 · Requirement met (0.2819ms)
+▶ S-4 · Deadline passed
+  ✔ AC1: 1 day past → "Cycle ended on Dec 31, 2027 (1 day ago)." (0.0659ms)
+  ✔ AC2: 31 days past → 31 days ago (0.056ms)
+  ✔ AC3: earned = required AND deadline passed → requirement-met wins (0.0445ms)
+✔ S-4 · Deadline passed (0.2463ms)
+▶ S-5 · At-risk warning
+  ✔ AC1: pace exactly 40 → NOT at risk (0.1202ms)
+  ✔ AC2: pace 40.1 → at-risk warning appears (0.0522ms)
+  ✔ AC3: urgency + at-risk → warning appears above urgency message (0.0557ms)
+  ✔ AC4: requirement met → no at-risk warning (0.043ms)
+  ✔ AC5: deadline passed → no at-risk warning (0.0384ms)
+✔ S-5 · At-risk warning (0.4179ms)
+▶ S-6 · Future calc-from date
+  ✔ AC1: calc-from Dec 1 2027, end Jan 9 2028 (40 days) → 7 credits/week (0.0787ms)
+  ✔ AC2a: calc-from Apr 1 2027, 90 days → 2.8 credits/week (0.0641ms)
+  ✔ AC2b: calc-from Jan 1 2027, 180 days → 1.4 credits/week (double pace for earlier start) (0.0879ms)
+  ✔ AC3: calc-from after end → deadline-passed state (0.0472ms)
+  ✔ AC4a: leap year 2028 — Feb 28 to Mar 1 = 3 days → urgency "3 credits in next 3 days" (0.0523ms)
+  ✔ AC4b: non-leap year 2027 — Feb 28 to Mar 1 = 2 days → urgency "3 credits in next 2 days" (0.041ms)
+✔ S-6 · Future calc-from date (0.4949ms)
+▶ S-7 · Input validation
+  ✔ AC1: credits required = 0 → "Credits required must be greater than 0." (0.1352ms)
+  ✔ AC2: credits required = 501 → "Credits required cannot exceed 500." (0.0986ms)
+  ✔ AC3: credits required = "abc" → "Credits required must be a number." (0.0844ms)
+  ✔ AC4: credits required = 60.555 → "Credits required cannot have more than 2 decimal places." (0.0457ms)
+  ✔ AC5: credits earned = -1 → "Credits earned cannot be negative." (0.044ms)
+  ✔ AC6: credits earned = 1001 → "Credits earned cannot exceed 1,000." (0.064ms)
+  ✔ AC7: credits earned = "abc" → "Credits earned must be a number." (0.082ms)
+  ✔ AC8: credits earned = 60.555 → "Credits earned cannot have more than 2 decimal places." (0.0595ms)
+  ✔ AC9: end date year = 1999 → "Cycle end date must be between 2000 and 2100." (0.0975ms)
+  ✔ AC10: end date year = 2101 → "Cycle end date must be between 2000 and 2100." (0.0693ms)
+  ✔ AC11: calc-from cleared → "Calculate-from date is required." (0.058ms)
+  ✔ AC12: end date empty with valid required + calc-from → no error, no result (empty state) (0.0811ms)
+  ✔ AC13: error corrected → result appears (501 → 60, end Mar 11 2027, from Jan 1 2027, earned 20 → "4 credits/week") (0.054ms)
+  ✔ AC14: end date cleared → empty state (no error shown for end date) (0.0445ms)
+  ✔ AC15: impossible end date Feb 30 → "Cycle end date is not a valid calendar date." (0.0413ms)
+  ✔ AC16: leading decimal ".5" accepted as 0.5 credits earned (0.0454ms)
+  ✔ AC17: leading decimal ".5" accepted as 0.5 credits required (0.0495ms)
+  ✔ AC18: credits earned "1,001" (thousands comma) → "Credits earned cannot exceed 1,000." not "must be a number" (0.288ms)
+  ✔ AC19: credits earned "1,000" (thousands comma) → valid, treated as 1000 (0.0808ms)
+  ✔ AC20: credits required "1,000" (thousands comma) → "Credits required cannot exceed 500." not "must be a number" (0.0847ms)
+  ✔ AC21: impossible calc-from date (Feb 30) → "Calculate-from date is not a valid calendar date." (0.0799ms)
+  ✔ AC22: calc-from year 1999 → "Calculate-from date must be between 2000 and 2100." (0.0701ms)
+✔ S-7 · Input validation (2.2322ms)
+▶ S-8 · Preset values
+  ✔ AC1: PRESETS map — shrm=60, hrci=60, pmp=60, capm=15 (0.1344ms)
+  ✔ AC2: all keys are present, no extra keys (1.8207ms)
+  ✔ AC3+AC4: calculation with preset credit values works (60 → pace, 15 → pace) (0.1148ms)
+✔ S-8 · Preset values (2.2004ms)
+▶ S-9 · Reset
+  ✔ AC1: after reset, empty required + empty end date → empty state (0.1166ms)
+  ✔ AC2: after reset, errors clear — no errors in empty state (0.0578ms)
+✔ S-9 · Reset (0.2535ms)
+▶ S-10 · rankTeam — five-person ordering
+  ✔ AC1: order is Lapsed → At risk → Urgent → On track → Done (0.0848ms)
+  ✔ AC1: names follow rank (Bob Eve Carol Dave Alice) (0.0474ms)
+✔ S-10 · rankTeam — five-person ordering (0.2044ms)
+▶ S-10 · rankTeam — At-risk tie-break (highest pace first)
+  ✔ AC2: Frank (pace 50) before Grace (pace 43) (0.036ms)
+✔ S-10 · rankTeam — At-risk tie-break (highest pace first) (0.0667ms)
+▶ S-10 · rankTeam — Urgent tie-break (highest pace first)
+  ✔ AC3: Hina (pace 17.5) before Ivan (pace 7) (0.0339ms)
+✔ S-10 · rankTeam — Urgent tie-break (highest pace first) (0.0646ms)
+▶ S-10 · rankTeam — On-track tie-break (highest pace first)
+  ✔ AC4: Jana (pace 7.18) before Karl (pace 1.2) (0.0301ms)
+✔ S-10 · rankTeam — On-track tie-break (highest pace first) (0.0775ms)
+▶ S-10 · rankTeam — Lapsed tie-break (most days ago first)
+  ✔ AC5: Leo (10 days ago) before Mia (5 days ago) (0.0325ms)
+✔ S-10 · rankTeam — Lapsed tie-break (most days ago first) (0.0662ms)
+▶ S-10 · rankTeam — Done tie-break (entry order)
+  ✔ AC6: Nora before Oscar (entry order) (0.0315ms)
+✔ S-10 · rankTeam — Done tie-break (entry order) (0.0566ms)
+▶ S-10 · rankTeam — Incomplete and Invalid
+  ✔ AC7: blank row → Incomplete badge, no error (0.0619ms)
+  ✔ AC8: required="abc" → Invalid badge, field error shown (0.0799ms)
+  ✔ AC9: 3 valid + 1 Invalid + 1 Incomplete → valid first, then Invalid, then Incomplete (0.0919ms)
+✔ S-10 · rankTeam — Incomplete and Invalid (0.2899ms)
+▶ S-10 · rankTeam — summary counts
+  ✔ AC10: 5 valid rows — 2 at risk or lapsed out of 5 (0.1235ms)
+  ✔ AC11: all Incomplete → 0 valid rows (0.0485ms)
+  ✔ AC12: 2 valid + 2 Incomplete → valid.length = 2 (0.1069ms)
+✔ S-10 · rankTeam — summary counts (0.374ms)
+▶ S-10 · rankTeam — empty name uses entry position
+  ✔ AC13: row at entry index 2 (position 3) with no name → "Person 3" (0.076ms)
+✔ S-10 · rankTeam — empty name uses entry position (0.1251ms)
+▶ index.html — script syntax
+  ✔ inline script block 1 parses without syntax errors (1.6687ms)
+  ✔ inline script block 2 parses without syntax errors (0.0697ms)
+  ✔ inline script block 3 parses without syntax errors (0.1668ms)
+✔ index.html — script syntax (1.9916ms)
+ℹ tests 74
+ℹ suites 19
+ℹ pass 74
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.6404
+````
+
+</details>
+
+
+**Claude:**
+
+**74/74 — all pass.** Here's a summary of every change made:
+
+**1. Thousands commas in credit inputs** (`calc.js`) — `validateRequired` and `validateEarned` now strip commas before the regex check, so `1,001` reaches the "cannot exceed" check instead of failing as "must be a number". Covered by AC18–AC20.
+
+**2. Missing error messages in docs** (`docs/user-stories.md`) — Added three rows to the error table: impossible calc-from date, calc-from year out of range, and the team-view panel hint. Added the hint as an AC to S-10 as well.
+
+**3. Impossible calc-from date message** (`calc.js`, `validateFromDate`) — Was returning "is required" for all invalid parses. Now returns "is not a valid calendar date" for impossible dates (e.g. Feb 30), keeping "is required" only for empty. Covered by AC21.
+
+**4. Panel display docs** (`docs/user-stories.md`) — Replaced the false claim about blue/green/grey card borders with an accurate description: amber border for urgency, red border for at-risk, green/grey blocks inside the content for met/passed, no border change for normal pace.
+
+**5. Mobile layout** (`style.css`) — `#panel-team` is now a flex column; a `max-width: 768px` media query applies `flex-direction: column-reverse`, which puts the results card above the member list on narrow screens with no HTML change.
+
+**6. Invalid row errors on inputs** (`index.html`) — `buildRowEl` now adds `field-error` divs and `aria-describedby` to the required, earned, and end-date inputs. A `syncErrors()` function validates and updates those inputs on every change (and once on restore), so a red outline and error message appear inline rather than only in the results panel.
+
+**7. "credits remaining"** (`index.html`) — The team view pace line now reads "15 credits remaining" instead of "15 remaining", with correct singular/plural handling.

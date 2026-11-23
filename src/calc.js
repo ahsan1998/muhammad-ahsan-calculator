@@ -24,7 +24,7 @@ function validateRequired(str) {
   if (str === null || str === undefined || String(str).trim() === '') {
     return { ok: false, error: null }; // empty → no error, no result
   }
-  var s = String(str).trim();
+  var s = String(str).trim().replace(/,/g, ''); // strip thousands separators
   if (!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) {
     return { ok: false, error: 'Credits required must be a number.' };
   }
@@ -46,7 +46,7 @@ function validateEarned(str) {
   if (str === null || str === undefined || String(str).trim() === '') {
     return { ok: true, error: null, units: 0 }; // empty → treat as 0
   }
-  var s = String(str).trim();
+  var s = String(str).trim().replace(/,/g, ''); // strip thousands separators
   if (!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) {
     return { ok: false, error: 'Credits earned must be a number.' };
   }
@@ -155,7 +155,7 @@ function validateFromDate(str) {
   }
   var d = parseDate(str);
   if (!d) {
-    return { ok: false, error: 'Calculate-from date is required.' };
+    return { ok: false, error: 'Calculate-from date is not a valid calendar date.' };
   }
   if (d.y < 2000 || d.y > 2100) {
     return { ok: false, error: 'Calculate-from date must be between 2000 and 2100.' };
