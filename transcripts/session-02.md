@@ -8291,3 +8291,181 @@ The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\README.md has be
 Both files done. Quick confirmation the docs are consistent:
 - README: 69 tests, S-1–S-8 + S-10 + syntax check, team view mentioned in the description, S-9 is the only story called out as manual-only.
 - user-stories.md: S-10 was already `Status: Implemented`; S-11, S-12, S-13 remain `Not implemented` — nothing overstated.
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 13:55:05 UTC</sub>
+
+reviewers won't know what PDCs or recert cycles are. two clarity fixes, no logic changes:
+1. replace the subtitle under the title with: "Certifications like SHRM, HRCI and PMP need about 60 learning credits every 3 years. Enter yours to see how much to study each week, or switch to Team view to see who on your team is at risk."
+2. add a short "Try it in 30 seconds" section near the top of the README: pick SHRM-CP / SHRM-SCP, earned 20, calculate from Jan 1 2027, end Mar 11 2027 → "4 credits per week, 40 credits remaining, 70 days left". then one team example showing a Lapsed person ranked first.
+run tests after.
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\src\\index.html",
+  "old_string": "  <p>Calculate the weekly credit pace you need to renew your certification on time.</p>",
+  "new_string": "  <p>Certifications like SHRM, HRCI and PMP need about 60 learning credits every 3 years. Enter yours to see how much to study each week, or switch to Team view to see who on your team is at risk.</p>"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\src\index.html has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\README.md",
+  "old_string": "---\n\n## Prerequisites",
+  "new_string": "---\n\n## Try it in 30 seconds\n\n**My renewal tab** — select SHRM-CP / SHRM-SCP, leave credits earned at 20, set Calculate from to Jan 1 2027, Cycle end date to Mar 11 2027. Result: **4 credits per week · 40 credits remaining · 70 days left**.\n\n**Team view tab** — add two members: one with end date in the past (e.g. Dec 20 2026, any credits short of the requirement) and one on track. The past-deadline member gets a **Lapsed** badge and ranks first regardless of the other member's pace.\n\n---\n\n## Prerequisites"
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\README.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Bash</code></summary>
+
+````
+{
+  "command": "cd \"c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\" && node --test src/calc.test.js 2>&1 | tail -10",
+  "timeout": 30000
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+  ✔ inline script block 3 parses without syntax errors (0.1895ms)
+✔ index.html — script syntax (0.6776ms)
+ℹ tests 69
+ℹ suites 19
+ℹ pass 69
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 163.0529
+````
+
+</details>
+
+
+**Claude:**
+
+69/69. Two changes made, no logic touched:
+
+1. **Subtitle** in `index.html` — replaced with the requested text explaining the credential context and both views.
+2. **"Try it in 30 seconds"** in README — placed right after the intro block, before Prerequisites. Single-view walkthrough gives the exact expected result; team-view example shows Lapsed ranking without requiring the reviewer to know what pace numbers mean.
+
+
+---
+
+## 🧑 Ahsan  <sub>2026-11-23 14:14:27 UTC</sub>
+
+two mistakes in the "Try it in 30 seconds" section:
+1. "leave credits earned at 20". the default is 0, so it should be "type 20 in credits earned". otherwise the reviewer gets 6/week, not 4.
+2. team example: team "calculate from" defaults to today (Nov 2026), so an end date of Dec 20 2026 is in the future and won't show Lapsed. make it concrete: set team calculate from to Jan 1 2027, add Ali (PMI PMP, earned 10, end Dec 15 2026) and Sara (SHRM, earned 45, end Dec 31 2027). expected result: "1 of 2 at risk or lapsed", Ali Lapsed "Cycle ended 17 days ago." first, Sara On track "0.29 credits/week" second.
+
+
+**Claude:**
+
+Let me verify the numbers before writing them.
+
+<details><summary>🔧 Tool call: <code>Bash</code></summary>
+
+````
+{
+  "command": "cd \"c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\" && node -e \"\nconst { calculate } = require('./src/calc.js');\n// Ali: PMI PMP, req=60, earned=10, end=Dec 15 2026, from=Jan 1 2027\nconst ali = calculate('60','10','2026-12-15','2027-01-01');\nconsole.log('Ali state:', ali.state, 'daysAgo:', ali.daysAgo);\n// Sara: SHRM, req=60, earned=45, end=Dec 31 2027, from=Jan 1 2027\nconst sara = calculate('60','45','2027-12-31','2027-01-01');\nconsole.log('Sara state:', sara.state, 'pace:', sara.paceDisplay, 'remaining:', sara.remainingDisplay, 'days:', sara.daysLeft);\n\""
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+Ali state: passed daysAgo: 17
+Sara state: pace pace: 0.29 remaining: 15 days: 365
+````
+
+</details>
+
+
+**Claude:**
+
+Numbers confirmed. Now fix the README:
+
+<details><summary>🔧 Tool call: <code>Edit</code></summary>
+
+````
+{
+  "replace_all": false,
+  "file_path": "c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\\README.md",
+  "old_string": "**My renewal tab** — select SHRM-CP / SHRM-SCP, leave credits earned at 20, set Calculate from to Jan 1 2027, Cycle end date to Mar 11 2027. Result: **4 credits per week · 40 credits remaining · 70 days left**.\n\n**Team view tab** — add two members: one with end date in the past (e.g. Dec 20 2026, any credits short of the requirement) and one on track. The past-deadline member gets a **Lapsed** badge and ranks first regardless of the other member's pace.",
+  "new_string": "**My renewal tab** — select SHRM-CP / SHRM-SCP, type 20 in credits earned, set Calculate from to Jan 1 2027, Cycle end date to Mar 11 2027. Result: **4 credits per week · 40 credits remaining · 70 days left**.\n\n**Team view tab** — set Calculate from to Jan 1 2027, then add two members: Ali (PMI PMP, earned 10, end Dec 15 2026) and Sara (SHRM-CP / SHRM-SCP, earned 45, end Dec 31 2027). Summary: **1 of 2 at risk or lapsed**. Ali ranks first with a **Lapsed** badge and \"Cycle ended 17 days ago.\"; Sara ranks second with an **On track** badge and \"0.29 credits/week\"."
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+The file c:\Users\Saima Baqir\Desktop\muhammad-ahsan-calculator\README.md has been updated successfully. (file state is current in your context — no need to Read it back)
+````
+
+</details>
+
+<details><summary>🔧 Tool call: <code>Bash</code></summary>
+
+````
+{
+  "command": "cd \"c:\\Users\\Saima Baqir\\Desktop\\muhammad-ahsan-calculator\" && node --test src/calc.test.js 2>&1 | tail -8",
+  "timeout": 30000
+}
+````
+
+</details>
+
+<details><summary>📄 Tool result</summary>
+
+````
+ℹ tests 69
+ℹ suites 19
+ℹ pass 69
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 158.4411
+````
+
+</details>
+
+
+**Claude:**
+
+69/69. Both corrections made: "type 20 in credits earned" (not "leave at"), and the team example is now fully concrete — specific names, specific dates, verified expected output for both members and the summary line.
