@@ -15,66 +15,111 @@
 
 <main>
 
-  <!-- Inputs card -->
-  <section class="card" aria-label="Certification details">
-    <h2>Your details</h2>
+  <!-- Tab bar -->
+  <nav class="tab-bar" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" id="tab-single" aria-selected="true"
+            aria-controls="panel-single" type="button">My renewal</button>
+    <button class="tab" role="tab" id="tab-team" aria-selected="false"
+            aria-controls="panel-team" type="button">Team view</button>
+  </nav>
 
-    <!-- Preset -->
-    <div class="preset-row">
-      <div class="form-group">
-        <label for="preset">Certification preset</label>
-        <select id="preset" aria-label="Certification preset">
-          <option value="">Custom</option>
-          <option value="60">SHRM-CP / SHRM-SCP</option>
-          <option value="60">HRCI PHR / SPHR</option>
-          <option value="60">PMI PMP</option>
-          <option value="15">PMI CAPM</option>
-        </select>
+  <!-- ── My renewal panel ──────────────────────────────────────────────── -->
+  <div id="panel-single" role="tabpanel" aria-labelledby="tab-single">
+
+    <!-- Inputs card -->
+    <section class="card" aria-label="Certification details">
+      <h2>Your details</h2>
+
+      <!-- Preset -->
+      <div class="preset-row">
+        <div class="form-group">
+          <label for="preset">Certification preset</label>
+          <select id="preset" aria-label="Certification preset">
+            <option value="">Custom</option>
+            <option value="shrm">SHRM-CP / SHRM-SCP</option>
+            <option value="hrci">HRCI PHR / SPHR</option>
+            <option value="pmp">PMI PMP</option>
+            <option value="capm">PMI CAPM</option>
+          </select>
+        </div>
+        <button class="btn-reset" id="resetBtn" type="button" aria-label="Reset all fields">Reset</button>
       </div>
-      <button class="btn-reset" id="resetBtn" type="button" aria-label="Reset all fields">Reset</button>
-    </div>
 
-    <!-- Credits required -->
-    <div class="form-group" style="margin-top:16px">
-      <label for="required">Credits required</label>
-      <input type="text" id="required" inputmode="decimal" placeholder="e.g. 60"
-             aria-required="true" aria-describedby="required-error" autocomplete="off">
-      <div class="field-error" id="required-error" role="alert"></div>
-    </div>
-
-    <!-- Credits earned -->
-    <div class="form-group">
-      <label for="earned">Credits earned <span class="optional">(default 0)</span></label>
-      <input type="text" id="earned" inputmode="decimal" placeholder="0"
-             aria-describedby="earned-error" autocomplete="off">
-      <div class="field-error" id="earned-error" role="alert"></div>
-    </div>
-
-    <!-- Date row -->
-    <div class="row-2">
-      <div class="form-group">
-        <label for="fromDate">Calculate from</label>
-        <input type="date" id="fromDate" aria-required="true" aria-describedby="fromDate-error"
-               min="2000-01-01" max="2100-12-31">
-        <div class="field-error" id="fromDate-error" role="alert"></div>
+      <!-- Credits required -->
+      <div class="form-group" style="margin-top:16px">
+        <label for="required">Credits required</label>
+        <input type="text" id="required" inputmode="decimal" placeholder="e.g. 60"
+               aria-required="true" aria-describedby="required-error" autocomplete="off">
+        <div class="field-error" id="required-error" role="alert"></div>
       </div>
+
+      <!-- Credits earned -->
       <div class="form-group">
-        <label for="endDate">Cycle end date</label>
-        <input type="date" id="endDate" aria-required="true" aria-describedby="endDate-error"
-               min="2000-01-01" max="2100-12-31">
-        <div class="field-error" id="endDate-error" role="alert"></div>
+        <label for="earned">Credits earned <span class="optional">(default 0)</span></label>
+        <input type="text" id="earned" inputmode="decimal" placeholder="0"
+               aria-describedby="earned-error" autocomplete="off">
+        <div class="field-error" id="earned-error" role="alert"></div>
       </div>
-    </div>
 
-  </section>
+      <!-- Date row -->
+      <div class="row-2">
+        <div class="form-group">
+          <label for="fromDate">Calculate from</label>
+          <input type="date" id="fromDate" aria-required="true" aria-describedby="fromDate-error"
+                 min="2000-01-01" max="2100-12-31">
+          <div class="field-error" id="fromDate-error" role="alert"></div>
+        </div>
+        <div class="form-group">
+          <label for="endDate">Cycle end date</label>
+          <input type="date" id="endDate" aria-required="true" aria-describedby="endDate-error"
+                 min="2000-01-01" max="2100-12-31">
+          <div class="field-error" id="endDate-error" role="alert"></div>
+        </div>
+      </div>
 
-  <!-- Results card -->
-  <section class="card" id="results" aria-label="Result" aria-live="polite" aria-atomic="true">
-    <h2>Your pace</h2>
-    <div class="result-inner" id="resultContent">
-      <div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Results card -->
+    <section class="card" id="results" aria-label="Result" aria-live="polite" aria-atomic="true">
+      <h2>Your pace</h2>
+      <div class="result-inner" id="resultContent">
+        <div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>
+      </div>
+    </section>
+
+  </div><!-- /panel-single -->
+
+  <!-- ── Team view panel ───────────────────────────────────────────────── -->
+  <div id="panel-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+
+    <!-- Shared calc-from + members card -->
+    <section class="card" aria-label="Team members">
+      <h2>Team members</h2>
+
+      <!-- Shared calc-from -->
+      <div class="form-group">
+        <label for="teamFromDate">Calculate from</label>
+        <input type="date" id="teamFromDate" aria-required="true"
+               aria-describedby="teamFromDate-error" min="2000-01-01" max="2100-12-31">
+        <div class="field-error" id="teamFromDate-error" role="alert"></div>
+      </div>
+
+      <!-- Dynamic member rows -->
+      <div id="teamMemberList" style="margin-top:16px"></div>
+
+      <button class="btn-add" id="addMemberBtn" type="button">+ Add member</button>
+      <p class="team-note">Not saved — data clears on refresh.</p>
+    </section>
+
+    <!-- Team results card -->
+    <section class="card" id="teamResults" aria-label="Team pace" aria-live="polite" aria-atomic="true">
+      <h2>Team pace</h2>
+      <div id="teamResultContent">
+        <div class="result-hint">Add team members to see who&rsquo;s at risk.</div>
+      </div>
+    </section>
+
+  </div><!-- /panel-team -->
 
 </main>
 
@@ -240,7 +285,7 @@
     var val = this.value;
     if (val !== '') {
       suppressPresetSwitch = true;
-      elRequired.value = val;
+      elRequired.value = PRESETS[val];
       suppressPresetSwitch = false;
     }
     render();
@@ -275,6 +320,277 @@
   elEarned.value   = '0';
   elFromDate.value = todayISO();
   render();
+
+}());
+</script>
+
+<script>
+/* ── Tab switching ───────────────────────────────────────────────────────── */
+(function () {
+  'use strict';
+  var tabSingle  = document.getElementById('tab-single');
+  var tabTeam    = document.getElementById('tab-team');
+  var panelSingle = document.getElementById('panel-single');
+  var panelTeam   = document.getElementById('panel-team');
+
+  function switchTab(show) {
+    var isSingle = show === 'single';
+    tabSingle.setAttribute('aria-selected', isSingle ? 'true' : 'false');
+    tabTeam.setAttribute('aria-selected',   isSingle ? 'false' : 'true');
+    panelSingle.hidden = !isSingle;
+    panelTeam.hidden   = isSingle;
+  }
+
+  tabSingle.addEventListener('click', function () { switchTab('single'); });
+  tabTeam.addEventListener('click',   function () { switchTab('team'); });
+}());
+</script>
+
+<script>
+/* ── Team view ───────────────────────────────────────────────────────────── */
+(function () {
+  'use strict';
+
+  var MAX_MEMBERS = 20;
+  var memberRows  = [];   // array of { id, name, preset, required, earned, endDate }
+  var nextId      = 0;
+
+  var elList      = document.getElementById('teamMemberList');
+  var elAddBtn    = document.getElementById('addMemberBtn');
+  var elContent   = document.getElementById('teamResultContent');
+  var elFromDate  = document.getElementById('teamFromDate');
+  var elFromErr   = document.getElementById('teamFromDate-error');
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function setFieldError(el, errEl, msg) {
+    if (msg) {
+      el.classList.add('invalid'); errEl.textContent = msg; errEl.classList.add('visible');
+    } else {
+      el.classList.remove('invalid'); errEl.textContent = ''; errEl.classList.remove('visible');
+    }
+  }
+
+  function badgeClass(badge) {
+    var map = {
+      'Done': 'badge-done', 'On track': 'badge-on-track', 'Urgent': 'badge-urgent',
+      'At risk': 'badge-at-risk', 'Lapsed': 'badge-lapsed',
+      'Invalid': 'badge-invalid', 'Incomplete': 'badge-incomplete',
+    };
+    return map[badge] || 'badge-incomplete';
+  }
+
+  function resultLine(item) {
+    var r = item.result;
+    if (item.badge === 'Incomplete') return '';
+    if (item.badge === 'Invalid') {
+      var firstErr = r.errors.required || r.errors.earned || r.errors.endDate || r.errors.fromDate || '';
+      return '<div class="team-result-error">' + esc(firstErr) + '</div>';
+    }
+    if (r.state === 'met') {
+      var msg = 'Requirement met. ' + r.earnedDisplay + ' of ' + r.requiredDisplay + ' credits';
+      if (r.extraDisplay) msg += ' (' + r.extraDisplay + ' extra)';
+      return '<div class="team-result-line">' + esc(msg + '.') + '</div>';
+    }
+    if (r.state === 'passed') {
+      var dStr = r.daysAgo === 1 ? '1 day ago' : r.daysAgo + ' days ago';
+      return '<div class="team-result-line">' + esc('Cycle ended ' + dStr + '.') + '</div>';
+    }
+    if (r.state === 'urgency') {
+      var cStr = r.daysLeft === 1
+        ? esc(r.remainingDisplay) + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' needed today'
+        : esc(r.remainingDisplay) + ' credit' + (r.remainingDisplay === '1' ? '' : 's') + ' in ' + r.daysLeft + ' days';
+      return '<div class="team-result-line">' + cStr + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left')) + '</div>';
+    }
+    // pace
+    return '<div class="team-result-line">'
+      + esc(r.paceDisplay + ' credit' + (r.paceDisplay === '1' ? '' : 's') + '/week')
+      + ' &middot; ' + esc(r.remainingDisplay + ' remaining')
+      + ' &middot; ' + esc(r.daysLeft + (r.daysLeft === 1 ? ' day left' : ' days left'))
+      + '</div>';
+  }
+
+  // ── Render results ──────────────────────────────────────────────────────
+
+  function renderResults() {
+    var fromVal = elFromDate.value;
+    var vFrom = validateFromDate(fromVal);
+    setFieldError(elFromDate, elFromErr, vFrom.error);
+
+    if (!vFrom.ok) {
+      elContent.innerHTML = '<div class="result-hint">Enter a valid calculate-from date to see the team.</div>';
+      return;
+    }
+
+    if (memberRows.length === 0) {
+      elContent.innerHTML = '<div class="result-hint">Add team members to see who&rsquo;s at risk.</div>';
+      return;
+    }
+
+    var rows = memberRows.map(function (m) {
+      return { name: m.name, required: m.required, earned: m.earned, endDate: m.endDate };
+    });
+    var ranked = rankTeam(rows, fromVal);
+
+    var valid  = ranked.filter(function (r) { return r.badge !== 'Incomplete' && r.badge !== 'Invalid'; });
+    var danger = ranked.filter(function (r) { return r.badge === 'At risk' || r.badge === 'Lapsed'; });
+
+    var summary;
+    if (valid.length === 0) {
+      summary = 'Add team members to see who\'s at risk.';
+    } else {
+      summary = danger.length + ' of ' + valid.length + ' at risk or lapsed';
+    }
+
+    var html = '<div class="team-summary">' + esc(summary) + '</div>';
+    ranked.forEach(function (item) {
+      html += '<div class="team-result-row">'
+        + '<span class="team-badge ' + badgeClass(item.badge) + '">' + esc(item.badge) + '</span>'
+        + '<div class="team-result-body">'
+        + '<div class="team-result-name">' + esc(item.displayName) + '</div>'
+        + resultLine(item)
+        + '</div></div>';
+    });
+
+    elContent.innerHTML = html;
+  }
+
+  // ── Build a member row element ──────────────────────────────────────────
+
+  function buildRowEl(m, index) {
+    var div = document.createElement('div');
+    div.className = 'team-row';
+    div.dataset.id = m.id;
+
+    var presetOptions = ''
+      + '<option value="">Custom</option>'
+      + '<option value="shrm">SHRM-CP / SHRM-SCP</option>'
+      + '<option value="hrci">HRCI PHR / SPHR</option>'
+      + '<option value="pmp">PMI PMP</option>'
+      + '<option value="capm">PMI CAPM</option>';
+
+    var nameId     = 'tm-name-'    + m.id;
+    var presetId   = 'tm-preset-'  + m.id;
+    var requiredId = 'tm-req-'     + m.id;
+    var earnedId   = 'tm-earn-'    + m.id;
+    var endDateId  = 'tm-end-'     + m.id;
+
+    div.innerHTML = ''
+      + '<div class="team-row-fields">'
+      + '  <div class="form-group"><label for="' + nameId + '">Name <span class="optional">(optional)</span></label>'
+      + '    <input type="text" id="' + nameId + '" placeholder="Person ' + (index + 1) + '" autocomplete="off"></div>'
+      + '  <div class="form-group"><label for="' + presetId + '">Preset</label>'
+      + '    <select id="' + presetId + '">' + presetOptions + '</select></div>'
+      + '  <div class="form-group"><label for="' + requiredId + '">Credits required</label>'
+      + '    <input type="text" id="' + requiredId + '" inputmode="decimal" placeholder="e.g. 60" autocomplete="off"></div>'
+      + '  <div class="form-group"><label for="' + earnedId + '">Credits earned</label>'
+      + '    <input type="text" id="' + earnedId + '" inputmode="decimal" placeholder="0" autocomplete="off"></div>'
+      + '  <div class="form-group"><label for="' + endDateId + '">Cycle end date</label>'
+      + '    <input type="date" id="' + endDateId + '" min="2000-01-01" max="2100-12-31"></div>'
+      + '</div>'
+      + '<button class="btn-remove" type="button" aria-label="Remove member">&times;</button>';
+
+    var nameEl    = div.querySelector('#' + nameId);
+    var presetEl  = div.querySelector('#' + presetId);
+    var reqEl     = div.querySelector('#' + requiredId);
+    var earnEl    = div.querySelector('#' + earnedId);
+    var endEl     = div.querySelector('#' + endDateId);
+    var removeBtn = div.querySelector('.btn-remove');
+
+    // Restore saved state into DOM (fixes blank inputs after rebuildList)
+    nameEl.value   = m.name     || '';
+    presetEl.value = m.preset   || '';
+    reqEl.value    = m.required || '';
+    earnEl.value   = m.earned   || '';
+    endEl.value    = m.endDate  || '';
+
+    var suppressPreset = false;
+
+    function sync() {
+      m.name     = nameEl.value;
+      m.required = reqEl.value;
+      m.earned   = earnEl.value;
+      m.endDate  = endEl.value;
+      renderResults();
+    }
+
+    presetEl.addEventListener('change', function () {
+      if (this.value !== '') {
+        suppressPreset = true;
+        reqEl.value = PRESETS[this.value];
+        suppressPreset = false;
+      }
+      m.preset = presetEl.value;
+      sync();
+    });
+
+    reqEl.addEventListener('input', function () {
+      if (!suppressPreset) {
+        presetEl.value = '';
+        m.preset = '';
+      }
+      sync();
+    });
+
+    nameEl.addEventListener('input', sync);
+    earnEl.addEventListener('input', sync);
+    endEl.addEventListener('change', sync);
+
+    removeBtn.addEventListener('click', function () {
+      memberRows = memberRows.filter(function (r) { return r.id !== m.id; });
+      rebuildList();
+      renderResults();
+    });
+
+    return div;
+  }
+
+  // ── Rebuild the full member list DOM ────────────────────────────────────
+
+  function rebuildList() {
+    elList.innerHTML = '';
+    memberRows.forEach(function (m, i) {
+      elList.appendChild(buildRowEl(m, i));
+    });
+    elAddBtn.disabled = memberRows.length >= MAX_MEMBERS;
+  }
+
+  // ── Add member ──────────────────────────────────────────────────────────
+
+  elAddBtn.addEventListener('click', function () {
+    if (memberRows.length >= MAX_MEMBERS) return;
+    var m = { id: nextId++, name: '', preset: '', required: '', earned: '', endDate: '' };
+    memberRows.push(m);
+    rebuildList();
+    // focus the name field of the new row
+    var last = elList.lastElementChild;
+    if (last) {
+      var nameInput = last.querySelector('input[type="text"]');
+      if (nameInput) nameInput.focus();
+    }
+    renderResults();
+  });
+
+  // ── Shared calc-from date ───────────────────────────────────────────────
+
+  elFromDate.addEventListener('change', renderResults);
+
+  // ── Initialise ──────────────────────────────────────────────────────────
+
+  elFromDate.value = todayISO();
 
 }());
 </script>

@@ -246,14 +246,51 @@ As a Certified Professional, I want to clear all inputs and return to the starti
 ---
 
 ## S-10 · Compare renewal status across multiple team members
-**Role:** L&D Manager | **Job:** J-4 | **Status:** Not implemented
+**Role:** L&D Manager | **Job:** J-4 | **Status:** Implemented
 
 As an L&D Manager, I want to enter details for several team members in one view and see them ranked by risk, so that I can prioritise training budget across the team without running separate calculations.
 
 **Acceptance criteria**
 
-- Given two team members are entered, one at-risk and one on track, when I view the team list, then the at-risk member appears first.
+**Ranking order**
+- Given calc-from = Jan 1, 2027 and five members — Alice (req 60, earned 60, end Mar 11 2027), Bob (req 60, earned 10, end Dec 20 2026), Carol (req 60, earned 50, end Jan 5 2027), Dave (req 60, earned 20, end Mar 11 2027), Eve (req 500, earned 0, end Mar 11 2027) — when the team list is shown, then the rank order is **Bob → Eve → Carol → Dave → Alice** with badges **Lapsed → At risk → Urgent → On track → Done**.
+
+**Badge definitions**
+
+| `calculate()` result | Badge |
+|---|---|
+| `state === 'met'` | Done |
+| `state === 'passed'` | Lapsed |
+| (`state === 'urgency'` or `state === 'pace'`) and `isAtRisk` | At risk |
+| `state === 'urgency'` and not `isAtRisk` | Urgent |
+| `state === 'pace'` and not `isAtRisk` | On track |
+| `state === 'error'` | Invalid |
+| `state === 'empty'` | Incomplete |
+
+**Tie-breaks**
+- Given calc-from = Jan 1, 2027 and two At-risk members — Frank (req 500, earned 0, end Mar 11 2027, pace 50/week) and Grace (req 430, earned 0, end Mar 11 2027, pace 43/week) — then **Frank appears before Grace** (highest pace first).
+- Given calc-from = Jan 1, 2027 and two Urgent members — Hina (req 60, earned 47.5, end Jan 5 2027, pace 17.5/week) and Ivan (req 60, earned 55, end Jan 5 2027, pace 7/week) — then **Hina appears before Ivan** (highest pace first).
+- Given calc-from = Jan 1, 2027 and two On-track members — Jana (req 60, earned 20, end Feb 8 2027, pace 7.18/week) and Karl (req 60, earned 48, end Mar 11 2027, pace 1.2/week) — then **Jana appears before Karl** (highest pace first).
+- Given calc-from = Jan 1, 2027 and two Lapsed members — Leo (req 60, earned 10, end Dec 22 2026, 10 days ago) and Mia (req 60, earned 10, end Dec 27 2026, 5 days ago) — then **Leo appears before Mia** (most days ago first).
+- Given two Done members entered in order Nora then Oscar with identical credits and dates, then **Nora appears before Oscar** (entry order preserved for exact ties across all badge groups).
+
+**Incomplete and Invalid rows**
+- Given a row with no required credits or end date entered (fields blank), then its badge is **Incomplete**, it appears at the bottom of the list, and no error message is shown for that row.
+- Given a row with credits required = "abc", then its badge is **Invalid**, the first field error is shown, and it appears above Incomplete rows but below all result rows.
+- Given three valid rows plus one Invalid row and one Incomplete row, then the order is: three result rows (ranked by status) → Invalid → Incomplete.
+
+**Summary line**
+- Given five valid members — Bob (Lapsed), Eve (At risk), Carol (Urgent), Dave (On track), Alice (Done) — then the summary reads **"2 of 5 at risk or lapsed"** (Urgent is not counted).
+- Given no rows have results yet (all Incomplete or Invalid), then the summary reads **"Add team members to see who's at risk."**
+- Given two valid members plus two Incomplete rows, then the summary counts only the two valid members.
+
+**Empty name**
+- Given a member row with no name entered and that row is at entry position 3, then its display name is **"Person 3"** regardless of its rank position.
+
+**Live updates and limits**
 - Given a team member's data changes, then their position in the ranked list updates immediately.
+- Given 20 members are already entered, then the Add member button is disabled.
+- Team data is not saved between page loads; the view displays a note to that effect.
 
 ---
 

@@ -1,5 +1,8 @@
 /* Renewal Runway — pure calculation functions. Classic script; no import/export. */
 
+// Preset key → credits required. Used by both views to populate the required field.
+var PRESETS = { shrm: 60, hrci: 60, pmp: 60, capm: 15 };
+
 // Parse a credit string to integer hundredths. Returns NaN on failure.
 function parseCredits(str) {
   if (str === null || str === undefined || String(str).trim() === '') return NaN;
@@ -270,8 +273,62 @@ function calculate(requiredStr, earnedStr, endDateStr, fromDateStr) {
   };
 }
 
+/*
+  rankTeam(rows, fromDate)
+  rows: array of { name, required, earned, endDate } (all strings)
+  fromDate: string "YYYY-MM-DD"
+  Returns array of annotated items sorted by risk, highest first:
+    { row, result, badge, displayName, entryOrder }
+  Badges: Lapsed | At risk | Urgent | On track | Done | Invalid | Incomplete
+  Invalid rows rank above Incomplete rows; both are below all result rows.
+  Tie-breaks: Lapsed → most daysAgo first; At risk / Urgent / On track → highest pace first;
+  Done / Invalid / Incomplete → entry order (stable).
+*/
+function rankTeam(rows, fromDate) {
+  var BADGE_ORDER = { 'Lapsed': 0, 'At risk': 1, 'Urgent': 2, 'On track': 3, 'Done': 4, 'Invalid': 5, 'Incomplete': 6 };
+
+  var annotated = rows.map(function (row, i) {
+    var r = calculate(
+      row.required !== undefined ? String(row.required) : '',
+      row.earned !== undefined ? String(row.earned) : '',
+      row.endDate !== undefined ? String(row.endDate) : '',
+      fromDate
+    );
+
+    var badge;
+    if (r.state === 'empty')   badge = 'Incomplete';
+    else if (r.state === 'error')  badge = 'Invalid';
+    else if (r.state === 'met')    badge = 'Done';
+    else if (r.state === 'passed') badge = 'Lapsed';
+    else if (r.isAtRisk)           badge = 'At risk';
+    else if (r.state === 'urgency') badge = 'Urgent';
+    else                           badge = 'On track';
+
+    var nameStr = row.name ? String(row.name).trim() : '';
+    var displayName = nameStr || ('Person ' + (i + 1));
+
+    return { row: row, result: r, badge: badge, displayName: displayName, entryOrder: i };
+  });
+
+  annotated.sort(function (a, b) {
+    var ao = BADGE_ORDER[a.badge], bo = BADGE_ORDER[b.badge];
+    if (ao !== bo) return ao - bo;
+    if (a.badge === 'Lapsed') {
+      var d = (b.result.daysAgo || 0) - (a.result.daysAgo || 0);
+      if (d !== 0) return d;
+    } else if (a.badge === 'At risk' || a.badge === 'Urgent' || a.badge === 'On track') {
+      var d = (b.result.pace || 0) - (a.result.pace || 0);
+      if (d !== 0) return d;
+    }
+    return a.entryOrder - b.entryOrder;
+  });
+
+  return annotated;
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
+    PRESETS,
     parseCredits,
     decimalPlaces,
     validateRequired,
@@ -284,5 +341,6 @@ if (typeof module !== 'undefined') {
     formatDate,
     pluralDays,
     calculate,
+    rankTeam,
   };
 }

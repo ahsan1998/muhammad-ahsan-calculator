@@ -2,7 +2,7 @@
 
 **[Live demo](https://muhammad-ahsan-calculator.vercel.app/)**
 
-A browser-based tool for professionals tracking continuing education credits toward credential renewal. Enter how many credits you need, how many you have, and your cycle end date — it tells you the weekly pace required to finish on time.
+A browser-based tool for professionals tracking continuing education credits toward credential renewal. Enter how many credits you need, how many you have, and your cycle end date — it tells you the weekly pace required to finish on time. L&D managers can switch to a team view to enter up to 20 members at once and see them ranked by risk.
 
 **Why this over a generic calculator?** KnowledgeCity's learners renew SHRM, HRCI, and PMI credentials on three-year cycles. Many leave it to the last few months and need a quick answer to "am I on pace?" — not a spreadsheet. Renewal Runway handles the edge cases (less than a week left, requirement already met, deadline passed) and flags an at-risk pace before it becomes a crisis.
 
@@ -35,7 +35,7 @@ src/index.html
 node --test src/calc.test.js
 ```
 
-52 tests covering the calculation and validation logic in `src/calc.js` for user stories S-1 through S-7 (input validation, pace calculation, result states, edge cases). **S-8 (certification presets) and S-9 (reset button)** depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.
+69 tests: calculation and validation logic for S-1 through S-8 and S-10 (ranking, tie-breaks, badge classification, summary counts, empty-name fallback), plus a script-syntax check that parses every inline `<script>` block in `index.html` via `new Function()`. **S-9 (reset button)** and the team-view DOM interactions depend on the page itself, so they are not in the unit-test suite. They, and every other implemented story, were checked in a real browser (Chrome) by a scripted walkthrough of the acceptance criteria against both `src/index.html` and the live demo, including a 375px phone-width check.
 
 ---
 

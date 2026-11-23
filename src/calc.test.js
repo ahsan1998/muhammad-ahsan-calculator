@@ -1,7 +1,10 @@
 'use strict';
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 const {
+  PRESETS,
   calcDaysLeft,
   calcPaceUnits,
   formatCredits,
@@ -11,6 +14,7 @@ const {
   validateEndDate,
   validateFromDate,
   calculate,
+  rankTeam,
 } = require('./calc.js');
 
 // ---------------------------------------------------------------------------
@@ -372,25 +376,21 @@ describe('S-7 · Input validation', () => {
 // S-8 · Preset selector (pure logic only — no DOM)
 // ---------------------------------------------------------------------------
 describe('S-8 · Preset values', () => {
-  const PRESETS = {
-    'SHRM-CP / SHRM-SCP': '60',
-    'HRCI PHR / SPHR': '60',
-    'PMI PMP': '60',
-    'PMI CAPM': '15',
-  };
-
-  it('AC1: SHRM-CP / SHRM-SCP preset = 60', () => {
-    assert.equal(PRESETS['SHRM-CP / SHRM-SCP'], '60');
+  it('AC1: PRESETS map — shrm=60, hrci=60, pmp=60, capm=15', () => {
+    assert.equal(PRESETS.shrm, 60);
+    assert.equal(PRESETS.hrci, 60);
+    assert.equal(PRESETS.pmp,  60);
+    assert.equal(PRESETS.capm, 15);
   });
 
-  it('AC2: PMI CAPM preset = 15', () => {
-    assert.equal(PRESETS['PMI CAPM'], '15');
+  it('AC2: all keys are present, no extra keys', () => {
+    assert.deepEqual(Object.keys(PRESETS).sort(), ['capm', 'hrci', 'pmp', 'shrm']);
   });
 
-  it('AC3+AC4: calculation with preset value works (60 → pace, 15 → pace)', () => {
-    const r60 = calculate('60', '0', '2027-03-11', '2027-01-01');
+  it('AC3+AC4: calculation with preset credit values works (60 → pace, 15 → pace)', () => {
+    const r60 = calculate(String(PRESETS.pmp),  '0', '2027-03-11', '2027-01-01');
     assert.equal(r60.state, 'pace');
-    const r15 = calculate('15', '0', '2027-03-11', '2027-01-01');
+    const r15 = calculate(String(PRESETS.capm), '0', '2027-03-11', '2027-01-01');
     assert.equal(r15.state, 'pace');
     assert.equal(r15.remainingDisplay, '15');
   });
@@ -411,4 +411,201 @@ describe('S-9 · Reset', () => {
     assert.equal(r.errors.endDate, null);
     assert.equal(r.errors.fromDate, null);
   });
+});
+
+// ---------------------------------------------------------------------------
+// S-10 · Team view — rankTeam()
+// ---------------------------------------------------------------------------
+// calc-from anchor used throughout
+const FROM = '2027-01-01';
+
+// helpers
+function badges(rows) { return rows.map(r => r.badge); }
+function names(rows)  { return rows.map(r => r.displayName); }
+
+describe('S-10 · rankTeam — five-person ordering', () => {
+  const members = [
+    { name: 'Alice', required: '60',  earned: '60', endDate: '2027-03-11' }, // Done
+    { name: 'Bob',   required: '60',  earned: '10', endDate: '2026-12-20' }, // Lapsed
+    { name: 'Carol', required: '60',  earned: '50', endDate: '2027-01-05' }, // Urgent  (5 days, pace 14)
+    { name: 'Dave',  required: '60',  earned: '20', endDate: '2027-03-11' }, // On track (70 days, pace 4)
+    { name: 'Eve',   required: '500', earned: '0',  endDate: '2027-03-11' }, // At risk  (70 days, pace 50)
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC1: order is Lapsed → At risk → Urgent → On track → Done', () => {
+    assert.deepEqual(badges(ranked), ['Lapsed', 'At risk', 'Urgent', 'On track', 'Done']);
+  });
+
+  it('AC1: names follow rank (Bob Eve Carol Dave Alice)', () => {
+    assert.deepEqual(names(ranked), ['Bob', 'Eve', 'Carol', 'Dave', 'Alice']);
+  });
+});
+
+describe('S-10 · rankTeam — At-risk tie-break (highest pace first)', () => {
+  // Frank pace 50 (500÷70×7), Grace pace 43 (430÷70×7 = 43.0)
+  const members = [
+    { name: 'Grace', required: '430', earned: '0', endDate: '2027-03-11' },
+    { name: 'Frank', required: '500', earned: '0', endDate: '2027-03-11' },
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC2: Frank (pace 50) before Grace (pace 43)', () => {
+    assert.equal(ranked[0].displayName, 'Frank');
+    assert.equal(ranked[1].displayName, 'Grace');
+  });
+});
+
+describe('S-10 · rankTeam — Urgent tie-break (highest pace first)', () => {
+  // Jan 1→Jan 5 = 5 days. Hina: 12.5 rem ÷ 5 × 7 = 17.5. Ivan: 5 rem ÷ 5 × 7 = 7.
+  const members = [
+    { name: 'Ivan', required: '60', earned: '55',   endDate: '2027-01-05' },
+    { name: 'Hina', required: '60', earned: '47.5', endDate: '2027-01-05' },
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC3: Hina (pace 17.5) before Ivan (pace 7)', () => {
+    assert.equal(ranked[0].displayName, 'Hina');
+    assert.equal(ranked[1].displayName, 'Ivan');
+  });
+});
+
+describe('S-10 · rankTeam — On-track tie-break (highest pace first)', () => {
+  // Jana: Jan 1→Feb 8 = 39 days, 40 rem → pace 7.18. Karl: 70 days, 12 rem → pace 1.2.
+  const members = [
+    { name: 'Karl', required: '60', earned: '48', endDate: '2027-03-11' },
+    { name: 'Jana', required: '60', earned: '20', endDate: '2027-02-08' },
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC4: Jana (pace 7.18) before Karl (pace 1.2)', () => {
+    assert.equal(ranked[0].displayName, 'Jana');
+    assert.equal(ranked[1].displayName, 'Karl');
+  });
+});
+
+describe('S-10 · rankTeam — Lapsed tie-break (most days ago first)', () => {
+  // Leo end Dec 22 2026: daysLeft = Dec 22 − Jan 1 + 1 = −9 → daysAgo = 10.
+  // Mia end Dec 27 2026: daysLeft = −4 → daysAgo = 5.
+  const members = [
+    { name: 'Mia', required: '60', earned: '10', endDate: '2026-12-27' },
+    { name: 'Leo', required: '60', earned: '10', endDate: '2026-12-22' },
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC5: Leo (10 days ago) before Mia (5 days ago)', () => {
+    assert.equal(ranked[0].displayName, 'Leo');
+    assert.equal(ranked[1].displayName, 'Mia');
+  });
+});
+
+describe('S-10 · rankTeam — Done tie-break (entry order)', () => {
+  const members = [
+    { name: 'Nora',  required: '60', earned: '60', endDate: '2027-03-11' },
+    { name: 'Oscar', required: '60', earned: '60', endDate: '2027-03-11' },
+  ];
+  const ranked = rankTeam(members, FROM);
+
+  it('AC6: Nora before Oscar (entry order)', () => {
+    assert.equal(ranked[0].displayName, 'Nora');
+    assert.equal(ranked[1].displayName, 'Oscar');
+  });
+});
+
+describe('S-10 · rankTeam — Incomplete and Invalid', () => {
+  it('AC7: blank row → Incomplete badge, no error', () => {
+    const ranked = rankTeam([{ name: '', required: '', earned: '', endDate: '' }], FROM);
+    assert.equal(ranked[0].badge, 'Incomplete');
+    assert.equal(ranked[0].result.errors.required, null);
+  });
+
+  it('AC8: required="abc" → Invalid badge, field error shown', () => {
+    const ranked = rankTeam([{ name: '', required: 'abc', earned: '0', endDate: '2027-03-11' }], FROM);
+    assert.equal(ranked[0].badge, 'Invalid');
+    assert.ok(ranked[0].result.errors.required);
+  });
+
+  it('AC9: 3 valid + 1 Invalid + 1 Incomplete → valid first, then Invalid, then Incomplete', () => {
+    const members = [
+      { name: 'A', required: '',    earned: '',  endDate: ''           }, // Incomplete
+      { name: 'B', required: 'abc', earned: '0', endDate: '2027-03-11' }, // Invalid
+      { name: 'C', required: '60',  earned: '60',endDate: '2027-03-11' }, // Done
+      { name: 'D', required: '60',  earned: '20',endDate: '2027-03-11' }, // On track
+      { name: 'E', required: '500', earned: '0', endDate: '2027-03-11' }, // At risk
+    ];
+    const ranked = rankTeam(members, FROM);
+    assert.deepEqual(badges(ranked), ['At risk', 'On track', 'Done', 'Invalid', 'Incomplete']);
+  });
+});
+
+describe('S-10 · rankTeam — summary counts', () => {
+  it('AC10: 5 valid rows — 2 at risk or lapsed out of 5', () => {
+    const members = [
+      { name: 'Bob',   required: '60',  earned: '10', endDate: '2026-12-20' }, // Lapsed
+      { name: 'Eve',   required: '500', earned: '0',  endDate: '2027-03-11' }, // At risk
+      { name: 'Carol', required: '60',  earned: '50', endDate: '2027-01-05' }, // Urgent
+      { name: 'Dave',  required: '60',  earned: '20', endDate: '2027-03-11' }, // On track
+      { name: 'Alice', required: '60',  earned: '60', endDate: '2027-03-11' }, // Done
+    ];
+    const ranked = rankTeam(members, FROM);
+    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+    const danger = ranked.filter(r => r.badge === 'At risk' || r.badge === 'Lapsed');
+    assert.equal(valid.length, 5);
+    assert.equal(danger.length, 2);
+  });
+
+  it('AC11: all Incomplete → 0 valid rows', () => {
+    const ranked = rankTeam([
+      { name: '', required: '', earned: '', endDate: '' },
+      { name: '', required: '', earned: '', endDate: '' },
+    ], FROM);
+    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+    assert.equal(valid.length, 0);
+  });
+
+  it('AC12: 2 valid + 2 Incomplete → valid.length = 2', () => {
+    const members = [
+      { name: 'X', required: '60', earned: '20', endDate: '2027-03-11' },
+      { name: 'Y', required: '60', earned: '60', endDate: '2027-03-11' },
+      { name: '',  required: '',   earned: '',   endDate: '' },
+      { name: '',  required: '',   earned: '',   endDate: '' },
+    ];
+    const ranked = rankTeam(members, FROM);
+    const valid = ranked.filter(r => r.badge !== 'Incomplete' && r.badge !== 'Invalid');
+    assert.equal(valid.length, 2);
+  });
+});
+
+describe('S-10 · rankTeam — empty name uses entry position', () => {
+  it('AC13: row at entry index 2 (position 3) with no name → "Person 3"', () => {
+    const members = [
+      { name: 'Alice', required: '60', earned: '20', endDate: '2027-03-11' },
+      { name: 'Bob',   required: '60', earned: '20', endDate: '2027-03-11' },
+      { name: '',      required: '60', earned: '20', endDate: '2027-03-11' }, // index 2
+    ];
+    const ranked = rankTeam(members, FROM);
+    const noName = ranked.find(r => r.entryOrder === 2);
+    assert.equal(noName.displayName, 'Person 3');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTML script-syntax check
+// Extracts every <script> block from index.html (excluding src= tags) and
+// runs each through new Function() so a JS syntax error fails the suite.
+// ---------------------------------------------------------------------------
+describe('index.html — script syntax', () => {
+  const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  const scriptRe = /<script(?:\s[^>]*)?>([^]*?)<\/script>/gi;
+  let match;
+  let blockIndex = 0;
+  while ((match = scriptRe.exec(html)) !== null) {
+    const attrs = match[0].slice(0, match[0].indexOf('>'));
+    if (attrs.includes('src=')) continue; // external file, skip
+    const src = match[1];
+    const idx = ++blockIndex;
+    it('inline script block ' + idx + ' parses without syntax errors', () => {
+      assert.doesNotThrow(() => new Function(src), 'syntax error in block ' + idx);
+    });
+  }
 });
