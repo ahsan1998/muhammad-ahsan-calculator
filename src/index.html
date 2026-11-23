@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renewal Runway — Recertification Pace Calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Renewal Runway</h1>
+  <p>Calculate the weekly credit pace you need to renew your certification on time.</p>
+</header>
+
+<main>
+
+  <!-- Inputs card -->
+  <section class="card" aria-label="Certification details">
+    <h2>Your details</h2>
+
+    <!-- Preset -->
+    <div class="preset-row">
+      <div class="form-group">
+        <label for="preset">Certification preset</label>
+        <select id="preset" aria-label="Certification preset">
+          <option value="">Custom</option>
+          <option value="60">SHRM-CP / SHRM-SCP</option>
+          <option value="60">HRCI PHR / SPHR</option>
+          <option value="60">PMI PMP</option>
+          <option value="15">PMI CAPM</option>
+        </select>
+      </div>
+      <button class="btn-reset" id="resetBtn" type="button" aria-label="Reset all fields">Reset</button>
+    </div>
+
+    <!-- Credits required -->
+    <div class="form-group" style="margin-top:16px">
+      <label for="required">Credits required</label>
+      <input type="text" id="required" inputmode="decimal" placeholder="e.g. 60"
+             aria-required="true" aria-describedby="required-error" autocomplete="off">
+      <div class="field-error" id="required-error" role="alert"></div>
+    </div>
+
+    <!-- Credits earned -->
+    <div class="form-group">
+      <label for="earned">Credits earned <span class="optional">(default 0)</span></label>
+      <input type="text" id="earned" inputmode="decimal" placeholder="0"
+             aria-describedby="earned-error" autocomplete="off">
+      <div class="field-error" id="earned-error" role="alert"></div>
+    </div>
+
+    <!-- Date row -->
+    <div class="row-2">
+      <div class="form-group">
+        <label for="fromDate">Calculate from</label>
+        <input type="date" id="fromDate" aria-required="true" aria-describedby="fromDate-error"
+               min="2000-01-01" max="2100-12-31">
+        <div class="field-error" id="fromDate-error" role="alert"></div>
+      </div>
+      <div class="form-group">
+        <label for="endDate">Cycle end date</label>
+        <input type="date" id="endDate" aria-required="true" aria-describedby="endDate-error"
+               min="2000-01-01" max="2100-12-31">
+        <div class="field-error" id="endDate-error" role="alert"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Results card -->
+  <section class="card" id="results" aria-label="Result" aria-live="polite" aria-atomic="true">
+    <h2>Your pace</h2>
+    <div class="result-inner" id="resultContent">
+      <div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Renewal Runway &mdash; recertification pace calculator
+</footer>
+
+<script src="calc.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Element references ──────────────────────────────────────────────────
+  var elRequired  = document.getElementById('required');
+  var elEarned    = document.getElementById('earned');
+  var elEndDate   = document.getElementById('endDate');
+  var elFromDate  = document.getElementById('fromDate');
+  var elPreset    = document.getElementById('preset');
+  var elReset     = document.getElementById('resetBtn');
+  var elContent   = document.getElementById('resultContent');
+
+  var elErrReq    = document.getElementById('required-error');
+  var elErrEarn   = document.getElementById('earned-error');
+  var elErrEnd    = document.getElementById('endDate-error');
+  var elErrFrom   = document.getElementById('fromDate-error');
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+
+  function todayISO() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function setError(el, errEl, msg) {
+    if (msg) {
+      el.classList.add('invalid');
+      errEl.textContent = msg;
+      errEl.classList.add('visible');
+    } else {
+      el.classList.remove('invalid');
+      errEl.textContent = '';
+      errEl.classList.remove('visible');
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  function render() {
+    var reqVal  = elRequired.value;
+    var earnVal = elEarned.value;
+    var endVal  = elEndDate.value;
+    var fromVal = elFromDate.value;
+
+    var r = calculate(reqVal, earnVal, endVal, fromVal);
+
+    // Show/clear field errors
+    setError(elRequired, elErrReq,   r.errors.required);
+    setError(elEarned,   elErrEarn,  r.errors.earned);
+    setError(elEndDate,  elErrEnd,   r.errors.endDate);
+    setError(elFromDate, elErrFrom,  r.errors.fromDate);
+
+    var html = '';
+
+    if (r.state === 'empty') {
+      html = '<div class="result-hint">Enter credits required and your cycle end date to see your pace.</div>';
+
+    } else if (r.state === 'error') {
+      html = '<div class="result-hint">Fix the highlighted field to see your pace.</div>';
+
+    } else if (r.state === 'met') {
+      var msg;
+      if (r.extraDisplay !== null) {
+        msg = 'Requirement met. You have ' + r.earnedDisplay + ' of ' + r.requiredDisplay
+              + ' credits (' + r.extraDisplay + ' extra).';
+      } else {
+        msg = 'Requirement met. You have ' + r.earnedDisplay + ' of ' + r.requiredDisplay + ' credits.';
+      }
+      html = '<div class="result-met">' + esc(msg) + '</div>';
+
+    } else if (r.state === 'passed') {
+      var daysAgoStr = r.daysAgo === 1 ? '1 day ago' : r.daysAgo + ' days ago';
+      html = '<div class="result-passed">Cycle ended on ' + esc(r.endDateDisplay)
+             + ' (' + daysAgoStr + ').</div>';
+
+    } else if (r.state === 'urgency') {
+      var warnHtml = r.isAtRisk
+        ? '<div class="banner-atrisk">At risk: this pace exceeds 40 credits per week.</div>'
+        : '';
+      var mainMsg;
+      if (r.daysLeft === 1) {
+        mainMsg = 'You need ' + r.remainingDisplay
+                  + (r.remainingDisplay === '1' ? ' credit' : ' credits') + ' today.';
+      } else {
+        mainMsg = 'You need ' + r.remainingDisplay
+                  + (r.remainingDisplay === '1' ? ' credit' : ' credits')
+                  + ' in the next ' + r.daysLeft + ' days.';
+      }
+      var remLabel = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
+      var dayLabel = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+      html = warnHtml
+        + '<div class="result-pace-wrap">'
+        + '<div class="result-urgency-main">' + esc(mainMsg) + '</div>'
+        + '<div class="result-secondary">'
+        + '<span><strong>' + esc(remLabel) + '</strong></span>'
+        + '<span><strong>' + esc(dayLabel) + '</strong></span>'
+        + '</div></div>';
+
+    } else if (r.state === 'pace') {
+      var warnHtml2 = r.isAtRisk
+        ? '<div class="banner-atrisk">At risk: this pace exceeds 40 credits per week.</div>'
+        : '';
+      var paceLabel = r.paceDisplay === '1' ? '1 credit per week' : r.paceDisplay + ' credits per week';
+      var remLabel2 = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
+      var dayLabel2 = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+      html = warnHtml2
+        + '<div class="result-pace-wrap">'
+        + '<div class="result-main">' + esc(paceLabel) + '</div>'
+        + '<div class="result-secondary">'
+        + '<span><strong>' + esc(remLabel2) + '</strong></span>'
+        + '<span><strong>' + esc(dayLabel2) + '</strong></span>'
+        + '</div></div>';
+    }
+
+    elContent.innerHTML = html;
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Preset selector ──────────────────────────────────────────────────────
+
+  var suppressPresetSwitch = false;
+
+  elPreset.addEventListener('change', function () {
+    var val = this.value;
+    if (val !== '') {
+      suppressPresetSwitch = true;
+      elRequired.value = val;
+      suppressPresetSwitch = false;
+    }
+    render();
+  });
+
+  elRequired.addEventListener('input', function () {
+    if (!suppressPresetSwitch) {
+      elPreset.value = '';
+    }
+    render();
+  });
+
+  // ── Live update on other fields ──────────────────────────────────────────
+
+  elEarned.addEventListener('input', render);
+  elEndDate.addEventListener('change', render);
+  elFromDate.addEventListener('change', render);
+
+  // ── Reset ────────────────────────────────────────────────────────────────
+
+  elReset.addEventListener('click', function () {
+    elPreset.value    = '';
+    elRequired.value  = '';
+    elEarned.value    = '0';
+    elEndDate.value   = '';
+    elFromDate.value  = todayISO();
+    render();
+  });
+
+  // ── Initialise ───────────────────────────────────────────────────────────
+
+  elEarned.value   = '0';
+  elFromDate.value = todayISO();
+  render();
+
+}());
+</script>
+
+</body>
+</html>
