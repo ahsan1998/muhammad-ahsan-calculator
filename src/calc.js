@@ -251,6 +251,8 @@ function calculate(requiredStr, earnedStr, endDateStr, fromDateStr) {
       daysLeft: daysLeft,
       pace: pace,
       isAtRisk: isAtRisk,
+      earnedUnits: earnUnits,
+      reqUnits: reqUnits,
     };
   }
 
@@ -263,6 +265,8 @@ function calculate(requiredStr, earnedStr, endDateStr, fromDateStr) {
     daysLeft: daysLeft,
     pace: pace,
     isAtRisk: isAtRisk,
+    earnedUnits: earnUnits,
+    reqUnits: reqUnits,
   };
 }
 

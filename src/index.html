@@ -95,6 +95,7 @@
   var elPreset    = document.getElementById('preset');
   var elReset     = document.getElementById('resetBtn');
   var elContent   = document.getElementById('resultContent');
+  var elResults   = document.getElementById('results');
 
   var elErrReq    = document.getElementById('required-error');
   var elErrEarn   = document.getElementById('earned-error');
@@ -139,6 +140,11 @@
     setError(elEndDate,  elErrEnd,   r.errors.endDate);
     setError(elFromDate, elErrFrom,  r.errors.fromDate);
 
+    // Update results card border to reflect severity
+    elResults.className = 'card';
+    if (r.isAtRisk) elResults.classList.add('results--atrisk');
+    else if (r.state === 'urgency') elResults.classList.add('results--urgency');
+
     var html = '';
 
     if (r.state === 'empty') {
@@ -177,8 +183,10 @@
       }
       var remLabel = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
       var dayLabel = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+      var urgencyClass = r.isAtRisk ? 'result-pace-wrap result-pace-wrap--atrisk' : 'result-pace-wrap result-pace-wrap--urgency';
       html = warnHtml
-        + '<div class="result-pace-wrap">'
+        + '<div class="' + urgencyClass + '">'
+        + progressBar(r.earnedUnits, r.reqUnits)
         + '<div class="result-urgency-main">' + esc(mainMsg) + '</div>'
         + '<div class="result-secondary">'
         + '<span><strong>' + esc(remLabel) + '</strong></span>'
@@ -192,8 +200,10 @@
       var paceLabel = r.paceDisplay === '1' ? '1 credit per week' : r.paceDisplay + ' credits per week';
       var remLabel2 = r.remainingDisplay === '1' ? '1 credit remaining' : r.remainingDisplay + ' credits remaining';
       var dayLabel2 = r.daysLeft === 1 ? '1 day left' : r.daysLeft + ' days left';
+      var paceClass = r.isAtRisk ? 'result-pace-wrap result-pace-wrap--atrisk' : 'result-pace-wrap';
       html = warnHtml2
-        + '<div class="result-pace-wrap">'
+        + '<div class="' + paceClass + '">'
+        + progressBar(r.earnedUnits, r.reqUnits)
         + '<div class="result-main">' + esc(paceLabel) + '</div>'
         + '<div class="result-secondary">'
         + '<span><strong>' + esc(remLabel2) + '</strong></span>'
@@ -210,6 +220,16 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function progressBar(earnedUnits, reqUnits) {
+    var pct = reqUnits > 0 ? Math.min(100, Math.round(earnedUnits / reqUnits * 100)) : 0;
+    var label = formatCredits(earnedUnits) + ' of ' + formatCredits(reqUnits) + ' credits earned';
+    return '<div class="progress-label">' + esc(label) + '</div>'
+      + '<div class="progress-wrap" role="progressbar" aria-valuenow="' + pct
+      + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + esc(label) + '">'
+      + '<div class="progress-bar" style="width:' + pct + '%"></div>'
+      + '</div>';
   }
 
   // ── Preset selector ──────────────────────────────────────────────────────

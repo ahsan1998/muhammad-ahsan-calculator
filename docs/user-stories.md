@@ -27,7 +27,9 @@ Up to 2 decimal places; trailing zeros dropped (4.00 → 4, 3.90 → 3.9); thous
 Results update as fields change. There is no separate calculate button.
 
 **Panel display**  
-In the Urgency and Weekly pace states, the panel shows three items below any at-risk warning: the main result line, then "X credits remaining" (or "1 credit remaining"), then "X days left" (or "1 day left"). These secondary items are not shown in the Requirement met or Deadline passed states.
+In the Urgency and Weekly pace states, the panel shows four items below any at-risk warning: a progress bar labelled "X of Y credits earned", the main result line, then "X credits remaining" (or "1 credit remaining"), then "X days left" (or "1 day left"). The progress bar fill is capped at 100%. These items are not shown in the Requirement met or Deadline passed states.
+
+The results card is colour-coded by severity: blue border for normal weekly pace; amber border and amber main text for urgency (< 7 days, not at risk); red border, red banner, and red main text for at-risk (pace > 40); green for requirement met; grey for deadline passed. Colour is never the only signal — the text and layout communicate each state independently.
 
 **Certification presets**  
 Selecting a preset fills credits required. Manually editing credits required switches the selector to Custom.

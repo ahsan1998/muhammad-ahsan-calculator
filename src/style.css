@@ -188,12 +188,12 @@ input.invalid:focus {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-border);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--warn-text);
+  color: var(--error-text);
   margin-bottom: 14px;
 }
 .banner-atrisk::before {
@@ -216,10 +216,10 @@ input.invalid:focus {
 
 .result-passed {
   padding: 14px 16px;
-  background: var(--error-bg);
-  border: 1px solid var(--error-border);
+  background: #f0f1f4;
+  border: 1px solid #c8ccda;
   border-radius: 6px;
-  color: var(--error-text);
+  color: var(--muted);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -231,15 +231,15 @@ input.invalid:focus {
 }
 
 .result-main {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 2.2rem;
+  font-weight: 800;
   color: var(--brand);
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .result-urgency-main {
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--brand);
   line-height: 1.3;
@@ -272,6 +272,56 @@ input.invalid:focus {
   font-size: 0.9rem;
 }
 
+/* Progress bar */
+.progress-wrap {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.result-pace-wrap--urgency .progress-bar {
+  background: var(--warn-border);
+}
+
+/* Urgency state: amber main text */
+.result-pace-wrap--urgency .result-urgency-main {
+  color: var(--warn-text);
+}
+
+/* At-risk state: red main text + red bar */
+.result-pace-wrap--atrisk .result-main,
+.result-pace-wrap--atrisk .result-urgency-main {
+  color: var(--error-text);
+}
+
+.result-pace-wrap--atrisk .progress-bar {
+  background: var(--error-text);
+}
+
+/* Results card border by state */
+#results.results--urgency {
+  border-color: var(--warn-border);
+}
+
+#results.results--atrisk {
+  border-color: var(--error-border);
+}
+
 /* Footer */
 footer {
   margin-top: 32px;
@@ -283,6 +333,6 @@ footer {
 /* Mobile */
 @media (max-width: 480px) {
   .row-2 { grid-template-columns: 1fr; }
-  .result-main { font-size: 1.4rem; }
+  .result-main { font-size: 1.7rem; }
   .card { padding: 18px 16px; }
 }
