@@ -8,6 +8,14 @@ A browser-based tool for professionals tracking continuing education credits tow
 
 ---
 
+## Try it in 30 seconds
+
+**My renewal tab** — select SHRM-CP / SHRM-SCP, type 20 in credits earned, set Calculate from to Jan 1 2027, Cycle end date to Mar 11 2027. Result: **4 credits per week · 40 credits remaining · 70 days left**.
+
+**Team view tab** — set Calculate from to Jan 1 2027, then add two members: Ali (PMI PMP, earned 10, end Dec 15 2026) and Sara (SHRM-CP / SHRM-SCP, earned 45, end Dec 31 2027). Summary: **1 of 2 at risk or lapsed**. Ali ranks first with a **Lapsed** badge and "Cycle ended 17 days ago."; Sara ranks second with an **On track** badge and "0.29 credits/week".
+
+---
+
 ## Prerequisites
 
 | Purpose | Requirement |
